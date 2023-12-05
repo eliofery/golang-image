@@ -1,0 +1,19 @@
+{
+    "name": "golang-image",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "build": "tailwindcss -i ./internal/resources/assets/css/tailwind.css -o ./internal/resources/assets/css/style.css --minify",
+        "watch": "modd"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "@awmottaz/prettier-plugin-void-html": "^1.1.0",
+        "prettier": "^3.1.0",
+        "prettier-plugin-tailwindcss": "^0.5.9",
+        "tailwindcss": "^3.3.6"
+    }
+}

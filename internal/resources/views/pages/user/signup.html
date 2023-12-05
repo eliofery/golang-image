@@ -1,0 +1,54 @@
+{{define "page"}}
+<div class="flex flex-col flex-wrap max-w-sm mx-auto justify-center py-12">
+  <h1 class="text-center mb-8 text-4xl">Регистрация</h1>
+  <div class="rounded bg-white p-8 shadow">
+    <form action="/signup" method="post">
+      <p class="hidden">
+        {{csrfInput}}
+      </p>
+      <p class="my-2">
+        <label class="text-sm font-bold text-gray-800" for="email">Почта</label>
+        <input
+          class="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-gray-800 placeholder-gray-500"
+          id="email"
+          name="email"
+          placeholder="Введите почту"
+          required
+          type="text"
+          {{if and .Data .Data.Email}}value="{{.Data.Email}}"{{end}}
+          {{if not .Data}}autofocus{{end}}
+        >
+      </p>
+      <p class="my-2">
+        <label class="text-sm font-bold text-gray-800" for="password">Пароль</label>
+        <input
+          class="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-gray-800 placeholder-gray-500"
+          id="password"
+          name="password"
+          placeholder="Введите пароль"
+          required
+          type="password"
+          {{if .Data}}autofocus{{end}}
+        >
+      </p>
+      <p class="mt-5">
+        <button
+          class="w-full rounded bg-cyan-700 p-2 text-lg font-bold text-white transition-colors hover:bg-cyan-800"
+          type="submit"
+        >
+          Зарегистрироваться
+        </button>
+      </p>
+      <div class="mt-5 flex w-full justify-between">
+        <p class="text-xs text-gray-500">
+          Уже есть аккаунт?
+          <a class="underline hover:no-underline" href="/signin">Войти</a>
+        </p>
+        <p class="text-xs text-gray-500">
+          <a class="underline hover:no-underline" href="/forgot-pw">Забыли пароль?</a>
+        </p>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}

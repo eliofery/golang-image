@@ -1,0 +1,73 @@
+{{define "page"}}
+<div class="flex flex-wrap justify-center py-12">
+  <h1 class="w-full text-center mb-8 text-4xl">Сброс пароля</h1>
+  <div class="rounded bg-white p-8 shadow">
+    <form
+      action="/reset-pw"
+      method="post">
+      <p class="hidden">{{csrfInput}}</p>
+      <p class="my-2">
+        <label
+          for="password"
+          class="text-sm font-bold text-gray-800"
+          >Новый пароль
+        </label>
+        <input
+          id="password"
+          class="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-gray-800 placeholder-gray-500"
+          type="password"
+          name="password"
+          placeholder="Введите новый пароль"
+          required
+          autofocus>
+      </p>
+      {{if and .Data .Data.Token}}
+      <p class="hidden">
+        <input
+          type="hidden"
+          name="token"
+          value="{{.Data.Token}}">
+      </p>
+      {{else}}
+      <p class="my-2">
+        <label
+          class="text-sm font-bold text-gray-800"
+          for="token"
+          >Токен для сброса
+        </label>
+        <input
+          class="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-gray-800 placeholder-gray-500"
+          id="token"
+          name="token"
+          placeholder="Вы должны были получить электронное письмо с токеном"
+          required
+          type="text">
+      </p>
+      {{end}}
+      <p class="mt-5">
+        <button
+          class="w-full rounded bg-cyan-700 p-2 text-lg font-bold text-white transition-colors hover:bg-cyan-800"
+          type="submit">
+          Обновить пароль
+        </button>
+      </p>
+      <div class="mt-5 flex w-full justify-between">
+        <p class="text-xs text-gray-500">
+          Нет аккаунта?
+          <a
+            class="underline hover:no-underline"
+            href="/signup"
+            >Создать</a>
+        </p>
+        <p class="text-xs text-gray-500">
+          <a
+            class="underline hover:no-underline"
+            href="/signin"
+            >Войти
+          </a>
+        </p>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}
