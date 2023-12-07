@@ -2,6 +2,7 @@ package gallery
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/eliofery/golang-image/pkg/database"
 	"github.com/eliofery/golang-image/pkg/errors"
@@ -12,6 +13,7 @@ import (
 
 var (
 	ErrTitleAlreadyExists = errors.New("заголовок уже существует")
+	ErrGalleryNotFound    = errors.New("галерея не существует")
 )
 
 type Gallery struct {
@@ -54,6 +56,33 @@ func (s *Service) Create(gallery *Gallery) error {
 			if pgError.Code == pgerrcode.UniqueViolation {
 				return errors.Public(err, ErrTitleAlreadyExists.Error())
 			}
+		}
+
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s *Service) ByID(gallery *Gallery) error {
+	op := "model.gallery.ById"
+
+	db, v := database.CtxDatabase(s.ctx), validate.Validation(s.ctx)
+
+	err := v.Var(gallery.ID, "required,min=1")
+	if err != nil {
+		return err
+	}
+
+	row := db.QueryRow(`
+        SELECT title, user_id
+        FROM galleries WHERE id = $1;`,
+		gallery.ID,
+	)
+	err = row.Scan(&gallery.Title, &gallery.UserID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.Public(err, ErrGalleryNotFound.Error())
 		}
 
 		return fmt.Errorf("%s: %w", op, err)
