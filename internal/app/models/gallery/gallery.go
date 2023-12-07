@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/eliofery/golang-image/internal/app/models/user"
 	"github.com/eliofery/golang-image/pkg/database"
 	"github.com/eliofery/golang-image/pkg/errors"
 	"github.com/eliofery/golang-image/pkg/validate"
@@ -89,4 +90,43 @@ func (s *Service) ByID(gallery *Gallery) error {
 	}
 
 	return nil
+}
+
+func (s *Service) ByUserID(us *user.User) ([]Gallery, error) {
+	op := "model.gallery.ById"
+
+	db, v := database.CtxDatabase(s.ctx), validate.Validation(s.ctx)
+
+	err := v.Var(us.ID, "required,min=1")
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := db.Query(`
+        SELECT id, title
+        FROM galleries
+        WHERE user_id = $1;`,
+		us.ID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var galleries []Gallery
+	for rows.Next() {
+		var gallery Gallery
+
+		err = rows.Scan(&gallery.ID, &gallery.Title)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+
+		galleries = append(galleries, gallery)
+	}
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("%s: %w", op, rows.Err())
+	}
+
+	return galleries, nil
 }
