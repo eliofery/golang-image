@@ -1,7 +1,6 @@
 package router
 
 import (
-	"context"
 	"github.com/eliofery/golang-image/pkg/logging"
 	"github.com/go-chi/chi/v5"
 	"net/http"
@@ -11,7 +10,6 @@ type Router struct {
 	Mux *chi.Mux
 }
 
-type Ctx context.Context
 type HandleCtx func(ctx Ctx) error
 
 func New() *Router {
@@ -33,7 +31,7 @@ func (rt *Router) handlerCtx(handler HandleCtx, w http.ResponseWriter, r *http.R
 
 	r = r.WithContext(ctx)
 
-	if err := handler(r.Context()); err != nil {
+	if err := handler(CtxRouter(r.Context())); err != nil {
 		logging.Logging(ctx).Error(err.Error())
 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
