@@ -1,16 +1,15 @@
 package pwreset
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"github.com/eliofery/golang-image/internal/app/models/session"
 	"github.com/eliofery/golang-image/internal/app/models/user"
-	"github.com/eliofery/golang-image/pkg/database"
 	"github.com/eliofery/golang-image/pkg/email"
 	"github.com/eliofery/golang-image/pkg/errors"
 	"github.com/eliofery/golang-image/pkg/rand"
-	"github.com/eliofery/golang-image/pkg/validate"
+	"github.com/eliofery/golang-image/pkg/router"
+	"github.com/go-playground/validator/v10"
 	"net/url"
 	"os"
 	"strings"
@@ -34,28 +33,36 @@ type PasswordReset struct {
 }
 
 type Service struct {
-	ctx context.Context
+	ctx      router.Ctx
+	db       *sql.DB
+	validate *validator.Validate
+	email    *email.Service
+
+	user *user.Service
 }
 
-func NewService(ctx context.Context) *Service {
+func NewService(ctx router.Ctx) *Service {
 	return &Service{
-		ctx: ctx,
+		ctx:      ctx,
+		db:       ctx.DB,
+		validate: ctx.Validate,
+		email:    email.NewService(),
+
+		user: user.NewService(ctx),
 	}
 }
 
 func (s *Service) Create(us *user.User) error {
 	op := "model.pwreset.Create"
 
-	d, v := database.CtxDatabase(s.ctx), validate.Validation(s.ctx)
-
 	us.Email = strings.ToLower(us.Email)
 
-	err := v.Var(us.Email, "required,email")
+	err := s.validate.Var(us.Email, "required,email")
 	if err != nil {
 		return err
 	}
 
-	row := d.QueryRow(`SELECT id FROM users WHERE email = $1`, us.Email)
+	row := s.db.QueryRow(`SELECT id FROM users WHERE email = $1`, us.Email)
 	err = row.Scan(&us.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -75,7 +82,7 @@ func (s *Service) Create(us *user.User) error {
 		ExpiresAt: time.Now().Add(DefaultResetDuration),
 	}
 
-	row = d.QueryRow(`
+	row = s.db.QueryRow(`
         INSERT INTO password_reset (user_id, token_hash, expires_at) VALUES ($1, $2, $3)
         ON CONFLICT (user_id) DO
         UPDATE SET token_hash = $2, expires_at = $3
@@ -89,8 +96,7 @@ func (s *Service) Create(us *user.User) error {
 	vals := url.Values{"token": {token}}
 	resetUrl := "http://localhost:8080/reset-pw?" + vals.Encode()
 
-	emailService := email.NewService()
-	err = emailService.Send(email.Email{
+	err = s.email.Send(email.Email{
 		From:    os.Getenv("EMAIL_SUPPORT"),
 		To:      us.Email,
 		Subject: "Восстановление пароля",
@@ -116,9 +122,7 @@ func (s *Service) Create(us *user.User) error {
 func (s *Service) Consume(data *struct{ Password, Token string }) error {
 	op := "model.pwreset.Consume"
 
-	d, v := database.CtxDatabase(s.ctx), validate.Validation(s.ctx)
-
-	err := v.Var(data.Password, "required,gte=10,lte=32")
+	err := s.validate.Var(data.Password, "required,gte=10,lte=32")
 	if err != nil {
 		return err
 	}
@@ -129,7 +133,7 @@ func (s *Service) Consume(data *struct{ Password, Token string }) error {
 	}
 	tokenHash := rand.HashToken(data.Token)
 
-	row := d.QueryRow(`
+	row := s.db.QueryRow(`
         SELECT password_reset.id, password_reset.expires_at, users.id, users.email, users.password
         FROM password_reset
         INNER JOIN users ON users.id = password_reset.user_id
@@ -153,8 +157,7 @@ func (s *Service) Consume(data *struct{ Password, Token string }) error {
 		return errors.Public(nil, fmt.Sprintf("%s: %s", ErrTokenExpired, data.Token))
 	}
 
-	service := user.NewService(s.ctx)
-	err = service.UpdatePassword(us)
+	err = s.user.UpdatePassword(us)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -170,9 +173,7 @@ func (s *Service) Consume(data *struct{ Password, Token string }) error {
 func (s *Service) Delete(pwReset *PasswordReset) error {
 	op := "model.pwreset.Delete"
 
-	d := database.CtxDatabase(s.ctx)
-
-	_, err := d.Exec(`
+	_, err := s.db.Exec(`
         DELETE FROM password_reset
         WHERE id = $1;`, pwReset.ID)
 	if err != nil {

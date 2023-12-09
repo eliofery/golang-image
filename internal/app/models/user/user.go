@@ -1,7 +1,6 @@
 package user
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"github.com/eliofery/golang-image/internal/app/models/session"
@@ -10,7 +9,8 @@ import (
 	"github.com/eliofery/golang-image/pkg/email"
 	"github.com/eliofery/golang-image/pkg/errors"
 	"github.com/eliofery/golang-image/pkg/rand"
-	"github.com/eliofery/golang-image/pkg/validate"
+	"github.com/eliofery/golang-image/pkg/router"
+	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
@@ -31,21 +31,29 @@ type User struct {
 }
 
 type Service struct {
-	ctx context.Context
+	ctx      router.Ctx
+	db       *sql.DB
+	validate *validator.Validate
+	email    *email.Service
+
+	session *session.Service
 }
 
-func NewService(ctx context.Context) *Service {
+func NewService(ctx router.Ctx) *Service {
 	return &Service{
-		ctx: ctx,
+		ctx:      ctx,
+		db:       ctx.DB,
+		validate: ctx.Validate,
+		email:    email.NewService(),
+
+		session: session.NewService(ctx),
 	}
 }
 
 func (s *Service) SignUp(us *User) error {
 	op := "model.us.SignUp"
 
-	d, v := database.CtxDatabase(s.ctx), validate.Validation(s.ctx)
-
-	err := v.Struct(us)
+	err := s.validate.Struct(us)
 	if err != nil {
 		return err
 	}
@@ -56,7 +64,7 @@ func (s *Service) SignUp(us *User) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	row := d.QueryRow(
+	row := s.db.QueryRow(
 		`INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id`,
 		us.Email, string(hashedPassword),
 	)
@@ -73,8 +81,7 @@ func (s *Service) SignUp(us *User) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	emailService := email.NewService()
-	err = emailService.Send(email.Email{
+	err = s.email.Send(email.Email{
 		From:    os.Getenv("EMAIL_SUPPORT"),
 		To:      us.Email,
 		Subject: "Регистрация на сайте",
@@ -101,7 +108,7 @@ func (s *Service) SignUp(us *User) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	err = session.NewService(s.ctx).Create(&session.Session{UserID: us.ID})
+	err = s.session.Create(&session.Session{UserID: us.ID})
 	if err != nil {
 		return err
 	}
@@ -112,9 +119,7 @@ func (s *Service) SignUp(us *User) error {
 func (s *Service) SignIn(user *User) error {
 	op := "model.user.SignIn"
 
-	d, v := database.CtxDatabase(s.ctx), validate.Validation(s.ctx)
-
-	err := v.Struct(user)
+	err := s.validate.Struct(user)
 	if err != nil {
 		return err
 	}
@@ -122,7 +127,7 @@ func (s *Service) SignIn(user *User) error {
 	user.Email = strings.ToLower(user.Email)
 	password := user.Password
 
-	row := d.QueryRow("SELECT * FROM users WHERE email = $1", user.Email)
+	row := s.db.QueryRow("SELECT * FROM users WHERE email = $1", user.Email)
 	err = row.Scan(&user.ID, &user.Email, &user.Password)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -136,7 +141,7 @@ func (s *Service) SignIn(user *User) error {
 		return errors.Public(err, ErrLoginOrPassword.Error())
 	}
 
-	err = session.NewService(s.ctx).Create(&session.Session{UserID: user.ID})
+	err = s.session.Create(&session.Session{UserID: user.ID})
 	if err != nil {
 		return err
 	}
@@ -147,15 +152,13 @@ func (s *Service) SignIn(user *User) error {
 func (s *Service) UpdatePassword(us *User) error {
 	op := "model.user.UpdatePassword"
 
-	d := database.CtxDatabase(s.ctx)
-
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(us.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	passwordHash := string(hashedBytes)
 
-	_, err = d.Exec(`
+	_, err = s.db.Exec(`
         UPDATE users
         SET password = $2
         WHERE id = $1;`, us.ID, passwordHash)
@@ -177,8 +180,8 @@ func GetCurrentUser(r *http.Request) (*User, error) {
 	}
 	tokenHash := rand.HashToken(token)
 
-	d := database.CtxDatabase(r.Context())
-	row := d.QueryRow(`
+	db := database.CtxDatabase(r.Context())
+	row := db.QueryRow(`
        SELECT users.id, users.email, users.password
        FROM users
        INNER JOIN sessions ON users.id = sessions.user_id

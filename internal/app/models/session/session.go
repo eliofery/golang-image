@@ -1,13 +1,13 @@
 package session
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
 	"github.com/eliofery/golang-image/pkg/cookie"
-	"github.com/eliofery/golang-image/pkg/database"
 	"github.com/eliofery/golang-image/pkg/rand"
 	"github.com/eliofery/golang-image/pkg/router"
-	"github.com/eliofery/golang-image/pkg/validate"
+	"github.com/go-playground/validator/v10"
+	"net/http"
 )
 
 type Session struct {
@@ -17,19 +17,23 @@ type Session struct {
 }
 
 type Service struct {
-	ctx context.Context
+	ctx      router.Ctx
+	writer   http.ResponseWriter
+	db       *sql.DB
+	validate *validator.Validate
 }
 
-func NewService(ctx context.Context) *Service {
+func NewService(ctx router.Ctx) *Service {
 	return &Service{
-		ctx: ctx,
+		ctx:      ctx,
+		writer:   ctx.ResponseWriter,
+		db:       ctx.DB,
+		validate: ctx.Validate,
 	}
 }
 
 func (s *Service) Create(session *Session) error {
 	op := "model.session.SignUp"
-
-	w, d, v := router.ResponseWriter(s.ctx), database.CtxDatabase(s.ctx), validate.Validation(s.ctx)
 
 	token, err := rand.SessionToken()
 	if err != nil {
@@ -38,12 +42,12 @@ func (s *Service) Create(session *Session) error {
 
 	session.TokenHash = rand.HashToken(token)
 
-	err = v.Struct(session)
+	err = s.validate.Struct(session)
 	if err != nil {
 		return err
 	}
 
-	row := d.QueryRow(`
+	row := s.db.QueryRow(`
         INSERT INTO sessions (user_id, token_hash) VALUES ($1, $2)
         ON CONFLICT (user_id) DO
         UPDATE SET token_hash = $2
@@ -54,7 +58,7 @@ func (s *Service) Create(session *Session) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	cookie.Set(w, cookie.Session, token)
+	cookie.Set(s.writer, cookie.Session, token)
 
 	return nil
 }

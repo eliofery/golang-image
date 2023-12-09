@@ -1,15 +1,15 @@
 package gallery
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"github.com/eliofery/golang-image/internal/app/models/user"
-	"github.com/eliofery/golang-image/pkg/database"
 	"github.com/eliofery/golang-image/pkg/errors"
-	"github.com/eliofery/golang-image/pkg/validate"
+	"github.com/eliofery/golang-image/pkg/router"
+	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
+	"net/http"
 )
 
 var (
@@ -24,31 +24,34 @@ type Gallery struct {
 }
 
 type Service struct {
-	ctx context.Context
+	ctx      router.Ctx
+	writer   http.ResponseWriter
+	db       *sql.DB
+	validate *validator.Validate
 }
 
-func NewService(ctx context.Context) *Service {
+func NewService(ctx router.Ctx) *Service {
 	return &Service{
-		ctx: ctx,
+		ctx:      ctx,
+		writer:   ctx.ResponseWriter,
+		db:       ctx.DB,
+		validate: ctx.Validate,
 	}
 }
 
 func (s *Service) Create(gallery *Gallery) error {
 	op := "model.gallery.Create"
 
-	db, v := database.CtxDatabase(s.ctx), validate.Validation(s.ctx)
-
-	err := v.Var(gallery.Title, "required,max=255")
+	err := s.validate.Var(gallery.Title, "required,max=255")
 	if err != nil {
 		return err
 	}
 
-	row := db.QueryRow(`
+	row := s.db.QueryRow(`
         INSERT INTO galleries (user_id, title)
         VALUES ($1, $2) RETURNING id;`,
 		gallery.UserID, gallery.Title,
 	)
-
 	err = row.Scan(&gallery.ID)
 	if err != nil {
 		var pgError *pgconn.PgError
@@ -68,14 +71,12 @@ func (s *Service) Create(gallery *Gallery) error {
 func (s *Service) ByID(gallery *Gallery) error {
 	op := "model.gallery.ById"
 
-	db, v := database.CtxDatabase(s.ctx), validate.Validation(s.ctx)
-
-	err := v.Var(gallery.ID, "required,min=1")
+	err := s.validate.Var(gallery.ID, "required,min=1")
 	if err != nil {
 		return err
 	}
 
-	row := db.QueryRow(`
+	row := s.db.QueryRow(`
         SELECT title, user_id
         FROM galleries WHERE id = $1;`,
 		gallery.ID,
@@ -95,14 +96,12 @@ func (s *Service) ByID(gallery *Gallery) error {
 func (s *Service) ByUserID(us *user.User) ([]Gallery, error) {
 	op := "model.gallery.ById"
 
-	db, v := database.CtxDatabase(s.ctx), validate.Validation(s.ctx)
-
-	err := v.Var(us.ID, "required,min=1")
+	err := s.validate.Var(us.ID, "required,min=1")
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := db.Query(`
+	rows, err := s.db.Query(`
         SELECT id, title
         FROM galleries
         WHERE user_id = $1;`,
