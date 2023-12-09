@@ -1,19 +1,15 @@
 package home
 
 import (
-	"github.com/eliofery/golang-image/pkg/logging"
 	"github.com/eliofery/golang-image/pkg/rand"
 	"github.com/eliofery/golang-image/pkg/router"
 	"github.com/eliofery/golang-image/pkg/tpl"
 )
 
 func Index(ctx router.Ctx) error {
-	l := logging.Logging(ctx)
-
-	// Получение токена
 	token, err := rand.SessionToken()
 	if err != nil {
-		l.Info("не удалось получить токен", err)
+		ctx.Logger.Info("не удалось получить токен", err)
 	}
 
 	data := tpl.Data{

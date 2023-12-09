@@ -7,15 +7,13 @@ import (
 )
 
 func Page404(ctx router.Ctx) error {
-	w := router.ResponseWriter(ctx)
+	ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
 
-	w.WriteHeader(http.StatusNotFound)
 	return tpl.Render(ctx, "error/404", tpl.Data{})
 }
 
 func Page405(ctx router.Ctx) error {
-	w := router.ResponseWriter(ctx)
+	ctx.ResponseWriter.WriteHeader(http.StatusMethodNotAllowed)
 
-	w.WriteHeader(http.StatusMethodNotAllowed)
 	return tpl.Render(ctx, "error/404", tpl.Data{})
 }
