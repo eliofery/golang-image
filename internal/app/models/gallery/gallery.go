@@ -129,3 +129,25 @@ func (s *Service) ByUserID(us *user.User) ([]Gallery, error) {
 
 	return galleries, nil
 }
+
+func (s *Service) Update(gallery *Gallery) error {
+	op := "model.gallery.Delete"
+
+	_, err := s.db.Exec(`UPDATE galleries SET title = $1 WHERE id = $2;`, gallery.Title, gallery.ID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s *Service) Delete(id uint) error {
+	op := "model.gallery.Delete"
+
+	_, err := s.db.Exec(`DELETE FROM galleries WHERE id = $1;`, id)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
