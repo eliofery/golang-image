@@ -11,13 +11,9 @@ import (
 )
 
 func Create(ctx router.Ctx) error {
-	userData := user.User{
-		Email:    ctx.FormValue("email"),
-		Password: ctx.FormValue("password"),
-	}
-
 	service := user.NewService(ctx)
-	err := service.SignUp(&userData)
+
+	userData, err := service.SignUp(ctx.FormValue("email"), ctx.FormValue("password"))
 	if err != nil {
 		ctx.Info(err.Error())
 		ctx.WriteHeader(http.StatusInternalServerError)
@@ -34,13 +30,9 @@ func Create(ctx router.Ctx) error {
 }
 
 func Auth(ctx router.Ctx) error {
-	userData := user.User{
-		Email:    ctx.FormValue("email"),
-		Password: ctx.FormValue("password"),
-	}
-
 	service := user.NewService(ctx)
-	err := service.SignIn(&userData)
+
+	userData, err := service.SignIn(ctx.FormValue("email"), ctx.FormValue("password"))
 	if err != nil {
 		ctx.Info(err.Error())
 		ctx.WriteHeader(http.StatusInternalServerError)
@@ -65,12 +57,9 @@ func Logout(ctx router.Ctx) error {
 }
 
 func ProcessForgotPassword(ctx router.Ctx) error {
-	userData := user.User{
-		Email: ctx.FormValue("email"),
-	}
-
 	service := pwreset.NewService(ctx)
-	err := service.Create(&userData)
+
+	userData, err := service.Create(ctx.FormValue("email"))
 	if err != nil {
 		ctx.Info(err.Error())
 		ctx.WriteHeader(http.StatusInternalServerError)
@@ -87,16 +76,9 @@ func ProcessForgotPassword(ctx router.Ctx) error {
 }
 
 func ProcessResetPassword(ctx router.Ctx) error {
-	data := &struct {
-		Password string
-		Token    string
-	}{
-		Password: ctx.FormValue("password"),
-		Token:    ctx.FormValue("token"),
-	}
-
 	service := pwreset.NewService(ctx)
-	err := service.Consume(data)
+
+	data, err := service.Consume(ctx.FormValue("password"), ctx.FormValue("token"))
 	if err != nil {
 		var pubErr errors.PublicError
 		if errors.As(err, &pubErr) {

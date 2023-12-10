@@ -52,28 +52,30 @@ func NewService(ctx router.Ctx) *Service {
 	}
 }
 
-func (s *Service) Create(us *user.User) error {
+func (s *Service) Create(mail string) (*user.User, error) {
 	op := "model.pwreset.Create"
 
-	us.Email = strings.ToLower(us.Email)
+	us := &user.User{
+		Email: strings.ToLower(mail),
+	}
 
 	err := s.validate.Var(us.Email, "required,email")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	row := s.db.QueryRow(`SELECT id FROM users WHERE email = $1`, us.Email)
 	err = row.Scan(&us.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return errors.Public(err, user.ErrLoginOrPassword.Error())
+			return nil, errors.Public(err, user.ErrLoginOrPassword.Error())
 		}
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	token, err := rand.SessionToken()
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	pwReset := &PasswordReset{
@@ -90,7 +92,7 @@ func (s *Service) Create(us *user.User) error {
 		us.ID, pwReset.TokenHash, pwReset.ExpiresAt)
 	err = row.Scan(&pwReset.ID)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	vals := url.Values{"token": {token}}
@@ -113,18 +115,26 @@ func (s *Service) Create(us *user.User) error {
 	   `,
 	})
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
+	return us, nil
 }
 
-func (s *Service) Consume(data *struct{ Password, Token string }) error {
+func (s *Service) Consume(password, token string) (*struct{ Password, Token string }, error) {
 	op := "model.pwreset.Consume"
+
+	data := &struct {
+		Password string
+		Token    string
+	}{
+		Password: password,
+		Token:    token,
+	}
 
 	err := s.validate.Var(data.Password, "required,gte=10,lte=32")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	us := &user.User{}
@@ -143,31 +153,31 @@ func (s *Service) Consume(data *struct{ Password, Token string }) error {
 		data.Token = ""
 
 		if errors.Is(err, sql.ErrNoRows) {
-			return errors.Public(err, ErrNotFount.Error())
+			return nil, errors.Public(err, ErrNotFount.Error())
 		}
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = s.Delete(pwReset)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	if time.Now().After(pwReset.ExpiresAt) {
-		return errors.Public(nil, fmt.Sprintf("%s: %s", ErrTokenExpired, data.Token))
+		return nil, errors.Public(nil, fmt.Sprintf("%s: %s", ErrTokenExpired, data.Token))
 	}
 
 	err = s.user.UpdatePassword(us)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = session.NewService(s.ctx).Create(&session.Session{UserID: us.ID})
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
+	return data, nil
 }
 
 func (s *Service) Delete(pwReset *PasswordReset) error {

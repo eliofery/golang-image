@@ -50,40 +50,44 @@ func NewService(ctx router.Ctx) *Service {
 	}
 }
 
-func (s *Service) SignUp(us *User) error {
-	op := "model.us.SignUp"
+func (s *Service) SignUp(mail, password string) (*User, error) {
+	op := "model.user.SignUp"
 
-	err := s.validate.Struct(us)
-	if err != nil {
-		return err
+	user := &User{
+		Email:    strings.ToLower(mail),
+		Password: password,
 	}
 
-	us.Email = strings.ToLower(us.Email)
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(us.Password), bcrypt.DefaultCost)
+	err := s.validate.Struct(user)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, err
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	row := s.db.QueryRow(
 		`INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id`,
-		us.Email, string(hashedPassword),
+		user.Email, string(hashedPassword),
 	)
-	err = row.Scan(&us.ID)
+	err = row.Scan(&user.ID)
 	if err != nil {
 		var pgError *pgconn.PgError
 
 		if errors.As(err, &pgError) {
 			if pgError.Code == pgerrcode.UniqueViolation {
-				return errors.Public(err, ErrEmailAlreadyExists.Error())
+				return nil, errors.Public(err, ErrEmailAlreadyExists.Error())
 			}
 		}
 
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = s.email.Send(email.Email{
 		From:    os.Getenv("EMAIL_SUPPORT"),
-		To:      us.Email,
+		To:      user.Email,
 		Subject: "Регистрация на сайте",
 		Plaintext: `
             Вы зарегистрировались на сайте.
@@ -91,8 +95,8 @@ func (s *Service) SignUp(us *User) error {
             Добро пожаловать к нам на сайт.
             Приятного время провождения.
 
-            Почта: ` + us.Email + `
-            Пароль: ` + us.Password + `
+            Почта: ` + user.Email + `
+            Пароль: ` + user.Password + `
         `,
 		HTML: `
 	       <h1>Вы зарегистрировались на сайте.</h1>
@@ -100,53 +104,55 @@ func (s *Service) SignUp(us *User) error {
 	       <p>Добро пожаловать к нам на сайт.</p>
 	       <p>Приятного время провождения.
 
-            <p><b>Почта:</b> ` + us.Email + `</p>
-            <p><b>Пароль:</b> ` + us.Password + `</p>
+            <p><b>Почта:</b> ` + user.Email + `</p>
+            <p><b>Пароль:</b> ` + user.Password + `</p>
         `,
 	})
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	err = s.session.Create(&session.Session{UserID: us.ID})
+	err = s.session.Create(&session.Session{UserID: user.ID})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return user, nil
 }
 
-func (s *Service) SignIn(user *User) error {
+func (s *Service) SignIn(mail, password string) (*User, error) {
 	op := "model.user.SignIn"
+
+	user := &User{
+		Email:    strings.ToLower(mail),
+		Password: password,
+	}
 
 	err := s.validate.Struct(user)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	user.Email = strings.ToLower(user.Email)
-	password := user.Password
 
 	row := s.db.QueryRow("SELECT * FROM users WHERE email = $1", user.Email)
 	err = row.Scan(&user.ID, &user.Email, &user.Password)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return errors.Public(err, ErrLoginOrPassword.Error())
+			return nil, errors.Public(err, ErrLoginOrPassword.Error())
 		}
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return errors.Public(err, ErrLoginOrPassword.Error())
+		return nil, errors.Public(err, ErrLoginOrPassword.Error())
 	}
 
 	err = s.session.Create(&session.Session{UserID: user.ID})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return user, nil
 }
 
 func (s *Service) UpdatePassword(us *User) error {
