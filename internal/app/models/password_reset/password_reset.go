@@ -103,16 +103,16 @@ func (s *Service) Create(mail string) (*user.User, error) {
 		To:      us.Email,
 		Subject: "Восстановление пароля",
 		Plaintext: `
-            Вы запросили восстановление пароля.
+           Вы запросили восстановление пароля.
 
-            Если это были не вы проигнорируйте данное письмо.
-            В противном случае перейдите по ссылке: ` + resetUrl,
+           Если это были не вы проигнорируйте данное письмо.
+           В противном случае перейдите по ссылке: ` + resetUrl,
 		HTML: `
-	       <h1>Вы запросили восстановление пароля.</h1>
+	      <h1>Вы запросили восстановление пароля.</h1>
 
-	       <p>Если это были не вы проигнорируйте данное письмо.</p>
-	       <p>В противном случае перейдите по ссылке: <a href="` + resetUrl + `">` + resetUrl + `</a></p>
-	   `,
+	      <p>Если это были не вы проигнорируйте данное письмо.</p>
+	      <p>В противном случае перейдите по ссылке: <a href="` + resetUrl + `">` + resetUrl + `</a></p>
+	  `,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -121,63 +121,61 @@ func (s *Service) Create(mail string) (*user.User, error) {
 	return us, nil
 }
 
-func (s *Service) Consume(password, token string) (*struct{ Password, Token string }, error) {
+func (s *Service) Consume(password, token string) (string, error) {
 	op := "model.pwreset.Consume"
 
-	data := &struct {
-		Password string
-		Token    string
-	}{
-		Password: password,
-		Token:    token,
-	}
-
-	err := s.validate.Var(data.Password, "required,gte=10,lte=32")
+	err := s.validate.Var(password, "required,gte=10,lte=32")
 	if err != nil {
-		return nil, err
+		return token, err
 	}
 
-	us := &user.User{}
+	err = s.validate.Var(token, "required")
+	if err != nil {
+		return token, err
+	}
+
+	us := &user.User{
+		Password: password,
+	}
+
 	pwReset := &PasswordReset{
+		TokenHash: rand.HashToken(token),
 		ExpiresAt: time.Now().Add(DefaultResetDuration),
 	}
-	tokenHash := rand.HashToken(data.Token)
 
 	row := s.db.QueryRow(`
-        SELECT password_reset.id, password_reset.expires_at, users.id, users.email, users.password
+        SELECT password_reset.id, password_reset.expires_at, users.id, users.email
         FROM password_reset
         INNER JOIN users ON users.id = password_reset.user_id
-        WHERE password_reset.token_hash = $1;`, tokenHash)
-	err = row.Scan(&pwReset.ID, &pwReset.ExpiresAt, &us.ID, &us.Email, &us.Password)
+        WHERE password_reset.token_hash = $1;`, pwReset.TokenHash)
+	err = row.Scan(&pwReset.ID, &pwReset.ExpiresAt, &us.ID, &us.Email)
 	if err != nil {
-		data.Token = ""
-
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.Public(err, ErrNotFount.Error())
+			return token, errors.Public(err, ErrNotFount.Error())
 		}
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return token, fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = s.Delete(pwReset)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return token, fmt.Errorf("%s: %w", op, err)
 	}
 
 	if time.Now().After(pwReset.ExpiresAt) {
-		return nil, errors.Public(nil, fmt.Sprintf("%s: %s", ErrTokenExpired, data.Token))
+		return token, errors.Public(nil, fmt.Sprintf("%s: %s", ErrTokenExpired, token))
 	}
 
 	err = s.user.UpdatePassword(us)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return token, fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = session.NewService(s.ctx).Create(&session.Session{UserID: us.ID})
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return token, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return data, nil
+	return token, nil
 }
 
 func (s *Service) Delete(pwReset *PasswordReset) error {

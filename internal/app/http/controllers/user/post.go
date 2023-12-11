@@ -78,7 +78,7 @@ func ProcessForgotPassword(ctx router.Ctx) error {
 func ProcessResetPassword(ctx router.Ctx) error {
 	service := pwreset.NewService(ctx)
 
-	data, err := service.Consume(ctx.FormValue("password"), ctx.FormValue("token"))
+	token, err := service.Consume(ctx.FormValue("password"), ctx.FormValue("token"))
 	if err != nil {
 		var pubErr errors.PublicError
 		if errors.As(err, &pubErr) {
@@ -90,7 +90,7 @@ func ProcessResetPassword(ctx router.Ctx) error {
 		ctx.WriteHeader(http.StatusInternalServerError)
 
 		return tpl.Render(ctx, "user/reset-pw", tpl.Data{
-			Data:   data,
+			Data:   token,
 			Errors: []error{err},
 		})
 	}

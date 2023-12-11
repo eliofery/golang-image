@@ -60,12 +60,12 @@ func (s *Service) SignUp(mail, password string) (*User, error) {
 
 	err := s.validate.Struct(user)
 	if err != nil {
-		return nil, err
+		return user, err
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return user, fmt.Errorf("%s: %w", op, err)
 	}
 
 	row := s.db.QueryRow(
@@ -78,11 +78,11 @@ func (s *Service) SignUp(mail, password string) (*User, error) {
 
 		if errors.As(err, &pgError) {
 			if pgError.Code == pgerrcode.UniqueViolation {
-				return nil, errors.Public(err, ErrEmailAlreadyExists.Error())
+				return user, errors.Public(err, ErrEmailAlreadyExists.Error())
 			}
 		}
 
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return user, fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = s.email.Send(email.Email{
@@ -109,12 +109,12 @@ func (s *Service) SignUp(mail, password string) (*User, error) {
         `,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return user, fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = s.session.Create(&session.Session{UserID: user.ID})
 	if err != nil {
-		return nil, err
+		return user, err
 	}
 
 	return user, nil
@@ -130,7 +130,7 @@ func (s *Service) SignIn(mail, password string) (*User, error) {
 
 	err := s.validate.Struct(user)
 	if err != nil {
-		return nil, err
+		return user, err
 	}
 
 	row := s.db.QueryRow("SELECT * FROM users WHERE email = $1", user.Email)
@@ -139,17 +139,17 @@ func (s *Service) SignIn(mail, password string) (*User, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.Public(err, ErrLoginOrPassword.Error())
 		}
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return user, fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return nil, errors.Public(err, ErrLoginOrPassword.Error())
+		return user, errors.Public(err, ErrLoginOrPassword.Error())
 	}
 
 	err = s.session.Create(&session.Session{UserID: user.ID})
 	if err != nil {
-		return nil, err
+		return user, err
 	}
 
 	return user, nil
@@ -166,8 +166,8 @@ func (s *Service) UpdatePassword(us *User) error {
 
 	_, err = s.db.Exec(`
         UPDATE users
-        SET password = $2
-        WHERE id = $1;`, us.ID, passwordHash)
+        SET password = $1
+        WHERE id = $2;`, passwordHash, us.ID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

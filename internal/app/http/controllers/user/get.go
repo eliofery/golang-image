@@ -22,13 +22,7 @@ func ForgotPassword(ctx router.Ctx) error {
 }
 
 func ResetPassword(ctx router.Ctx) error {
-	data := &struct {
-		Token string
-	}{
-		Token: ctx.Request.FormValue("token"),
-	}
-
 	return tpl.Render(ctx, "user/reset-pw", tpl.Data{
-		Data: data,
+		Data: ctx.Request.FormValue("token"),
 	})
 }
