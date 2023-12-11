@@ -66,6 +66,22 @@ func (rt *Router) Use(middlewares ...func(http.Handler) http.Handler) {
 	rt.Mux.Use(middlewares...)
 }
 
+func (rt *Router) Group(fn func(r *Router)) Router {
+	im := rt.With()
+
+	if fn != nil {
+		fn(&im)
+	}
+
+	return im
+}
+
+func (rt *Router) With() Router {
+	return Router{
+		Mux: rt.Mux.With().(*chi.Mux),
+	}
+}
+
 func (rt *Router) Route(pattern string, fn func(r *Router)) *chi.Mux {
 	subRouter := newRouter()
 

@@ -78,7 +78,7 @@ func main() {
 		r.Post("/logout", user.Logout)
 	})
 
-	route.Route("/", func(r *router.Router) {
+	route.Group(func(r *router.Router) {
 		r.Mux.Use(mw.Guest)
 
 		r.Get("/signup", user.SignUp)
