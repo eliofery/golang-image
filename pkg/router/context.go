@@ -12,7 +12,7 @@ import (
 )
 
 type Ctx struct {
-	context.Context // TODO может будет лишним (удалить)
+	context.Context
 	http.ResponseWriter
 	*http.Request
 	*slog.Logger
