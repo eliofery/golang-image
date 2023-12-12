@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"github.com/eliofery/golang-image/internal/app/http/controllers/gallery"
 	"github.com/eliofery/golang-image/internal/app/http/controllers/home"
 	"github.com/eliofery/golang-image/internal/app/http/controllers/notfound"
 	"github.com/eliofery/golang-image/internal/app/http/controllers/user"
@@ -71,11 +72,15 @@ func main() {
 	route.NotFound(notfound.Page404)
 	route.MethodNotAllowed(notfound.Page405)
 
-	route.Route("/user", func(r *router.Router) {
+	route.Group(func(r *router.Router) {
 		r.Mux.Use(mw.Auth)
 
-		r.Get("/", user.Index)
-		r.Post("/logout", user.Logout)
+		r.Get("/gallery", gallery.Index)
+
+		r.Route("/user", func(r *router.Router) {
+			r.Get("/", user.Index)
+			r.Post("/logout", user.Logout)
+		})
 	})
 
 	route.Group(func(r *router.Router) {
