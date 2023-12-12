@@ -7,14 +7,14 @@ import (
 )
 
 type Router struct {
-	Mux *chi.Mux
+	Chi *chi.Mux
 }
 
 type HandleCtx func(ctx Ctx) error
 
 func New() *Router {
 	return &Router{
-		Mux: chi.NewRouter(),
+		Chi: chi.NewRouter(),
 	}
 }
 
@@ -39,31 +39,31 @@ func (rt *Router) handlerCtx(handler HandleCtx, w http.ResponseWriter, r *http.R
 }
 
 func (rt *Router) Get(path string, handler HandleCtx) {
-	rt.Mux.Get(path, func(w http.ResponseWriter, r *http.Request) {
+	rt.Chi.Get(path, func(w http.ResponseWriter, r *http.Request) {
 		rt.handlerCtx(handler, w, r)
 	})
 }
 
 func (rt *Router) Post(path string, handler HandleCtx) {
-	rt.Mux.Post(path, func(w http.ResponseWriter, r *http.Request) {
+	rt.Chi.Post(path, func(w http.ResponseWriter, r *http.Request) {
 		rt.handlerCtx(handler, w, r)
 	})
 }
 
 func (rt *Router) NotFound(handler HandleCtx) {
-	rt.Mux.NotFound(func(w http.ResponseWriter, r *http.Request) {
+	rt.Chi.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		rt.handlerCtx(handler, w, r)
 	})
 }
 
 func (rt *Router) MethodNotAllowed(handler HandleCtx) {
-	rt.Mux.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+	rt.Chi.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		rt.handlerCtx(handler, w, r)
 	})
 }
 
 func (rt *Router) Use(middlewares ...func(http.Handler) http.Handler) {
-	rt.Mux.Use(middlewares...)
+	rt.Chi.Use(middlewares...)
 }
 
 func (rt *Router) Group(fn func(r *Router)) Router {
@@ -78,25 +78,19 @@ func (rt *Router) Group(fn func(r *Router)) Router {
 
 func (rt *Router) With() Router {
 	return Router{
-		Mux: rt.Mux.With().(*chi.Mux),
+		Chi: rt.Chi.With().(*chi.Mux),
 	}
 }
 
 func (rt *Router) Route(pattern string, fn func(r *Router)) *chi.Mux {
-	subRouter := newRouter()
+	subRouter := New()
 
 	fn(subRouter)
-	rt.Mux.Mount(pattern, subRouter.Mux)
+	rt.Chi.Mount(pattern, subRouter.Chi)
 
-	return subRouter.Mux
-}
-
-func newRouter() *Router {
-	return &Router{
-		Mux: chi.NewRouter(),
-	}
+	return subRouter.Chi
 }
 
 func (rt *Router) ServeHTTP() http.HandlerFunc {
-	return rt.Mux.ServeHTTP
+	return rt.Chi.ServeHTTP
 }

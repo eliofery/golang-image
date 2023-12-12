@@ -64,7 +64,7 @@ func main() {
 	route.Use(mw.SetUser)
 
 	// Подключение ресурсов
-	tpl.AssetsFsInit(route.Mux)
+	tpl.AssetsFsInit(route.Chi)
 
 	// Роуты
 	route.Get("/", home.Index)
@@ -73,7 +73,7 @@ func main() {
 	route.MethodNotAllowed(notfound.Page405)
 
 	route.Group(func(r *router.Router) {
-		r.Mux.Use(mw.Auth)
+		r.Chi.Use(mw.Auth)
 
 		r.Get("/gallery", gallery.Index)
 
@@ -84,7 +84,7 @@ func main() {
 	})
 
 	route.Group(func(r *router.Router) {
-		r.Mux.Use(mw.Guest)
+		r.Chi.Use(mw.Guest)
 
 		r.Get("/signup", user.SignUp)
 		r.Post("/signup", user.Create)
