@@ -6,13 +6,20 @@
       href="/"
       >Галерея
     </a>
-    <ul class="mx-20 flex flex-wrap items-center">
+    <ul class="mx-20 flex flex-wrap gap-x-8 items-center">
       {{ if currentUser}}
       <li>
         <a
           class="block hover:underline"
           href="/user"
           >Профиль
+        </a>
+      </li>
+      <li>
+        <a
+          class="block hover:underline"
+          href="/gallery/new"
+          >Создать галерею
         </a>
       </li>
       {{ end }}

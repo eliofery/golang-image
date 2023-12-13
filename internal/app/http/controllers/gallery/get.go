@@ -5,8 +5,8 @@ import (
 	"github.com/eliofery/golang-image/pkg/tpl"
 )
 
-func Index(ctx router.Ctx) error {
-	return tpl.Render(ctx, "gallery/index", tpl.Data{
+func New(ctx router.Ctx) error {
+	return tpl.Render(ctx, "gallery/new", tpl.Data{
 		Data: ctx.Request.FormValue("title"),
 	})
 }

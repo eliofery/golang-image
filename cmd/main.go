@@ -75,11 +75,13 @@ func main() {
 	route.Group(func(r *router.Router) {
 		r.Chi.Use(mw.Auth)
 
-		r.Get("/gallery", gallery.Index)
-
 		r.Route("/user", func(r *router.Router) {
 			r.Get("/", user.Index)
 			r.Post("/logout", user.Logout)
+		})
+
+		r.Route("/gallery", func(r *router.Router) {
+			r.Get("/new", gallery.New)
 		})
 	})
 
