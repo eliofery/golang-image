@@ -2,49 +2,86 @@
 <div class="flex flex-col flex-wrap max-w-sm mx-auto justify-center py-12">
   <h1 class="text-center mb-8 text-4xl">Авторизация</h1>
   <div class="rounded bg-white p-8 shadow">
-    <form action="/signin" method="post">
-      <p class="hidden">
-        {{csrfInput}}
-      </p>
+    <form
+      class="group"
+      action="/signin"
+      method="post"
+      novalidate>
+      <p class="hidden">{{csrfInput}}</p>
       <p class="my-2">
-        <label for="email" class="text-sm font-bold text-gray-800">Почта</label>
+        <label
+          for="email"
+          class="text-sm font-bold text-gray-800"
+          >Почта</label
+        >
         <input
           id="email"
-          class="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-gray-800 placeholder-gray-500"
-          type="text"
+          class="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-gray-800 placeholder-gray-500 invalid:[&:not(:placeholder-shown):not(:focus)]:border-red-500 peer"
+          type="email"
           name="email"
-          {{if and .Data .Data.Email}}value="{{.Data.Email}}"{{end}}
           placeholder="Введите почту"
           required
-          {{if not .Data}}autofocus{{end}}
-        >
+          pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+          {{if
+          and
+          .Data
+          .Data.Email}}value="{{.Data.Email}}"
+          {{else}}
+          autofocus
+          {{end}}>
+        <span class="mt-2 hidden text-sm text-red-500 peer-[&:not(:placeholder-shown):not(:focus):invalid]:block">
+          {{if error .Errors "Email"}} {{error .Errors "Email"}} {{else}} Не корректная Почта{{end}}
+        </span>
       </p>
+
       <p class="my-2">
-        <label for="password" class="text-sm font-bold text-gray-800">Пароль</label>
+        <label
+          for="password"
+          class="text-sm font-bold text-gray-800"
+          >Пароль</label
+        >
         <input
           id="password"
-          class="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-gray-800 placeholder-gray-500"
+          class="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-gray-800 placeholder-gray-500 invalid:[&:not(:placeholder-shown):not(:focus)]:border-red-500 peer"
           type="password"
           name="password"
           placeholder="Введите пароль"
           required
-        >
+          pattern=".{10,}"
+          {{if
+          and
+          .Data
+          .Data.Email}}
+          autofocus
+          {{end}}>
+        <span class="mt-2 hidden text-sm text-red-500 peer-[&:not(:placeholder-shown):not(:focus):invalid]:block">
+          {{if error .Errors "Password"}} {{error .Errors "Password"}} {{else}} Длина пароля должна не менее 10
+          символов{{end}}
+        </span>
       </p>
+
       <p class="mt-5">
         <button
-          class="w-full rounded bg-cyan-700 p-2 text-lg font-bold text-white transition-colors hover:bg-cyan-800"
-          type="submit"
-        >
+          class="w-full rounded bg-cyan-700 p-2 text-lg font-bold text-white transition-colors hover:bg-cyan-800 group-invalid:pointer-events-none group-invalid:opacity-30"
+          type="submit">
           Войти
         </button>
       </p>
       <div class="mt-5 flex w-full justify-between">
         <p class="text-xs text-gray-500">
           Нет аккаунта?
-          <a class="underline hover:no-underline" href="/signup">Создать</a>
+          <a
+            class="underline hover:no-underline"
+            href="/signup"
+            >Создать</a
+          >
         </p>
         <p class="text-xs text-gray-500">
-          <a class="underline hover:no-underline" href="/forgot-pw">Забыли пароль? </a>
+          <a
+            class="underline hover:no-underline"
+            href="/forgot-pw"
+            >Забыли пароль?
+          </a>
         </p>
       </div>
     </form>
