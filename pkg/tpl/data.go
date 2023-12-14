@@ -3,9 +3,10 @@ package tpl
 import "github.com/eliofery/golang-image/pkg/errors"
 
 type Data struct {
-	Meta   Meta
-	Data   any
-	Errors []error
+	Meta     Meta
+	Data     any
+	Messages []any
+	Errors   []error
 }
 
 type Meta struct {

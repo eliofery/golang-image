@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	ErrTitleAlreadyExists = errors.New("заголовок уже существует")
+	ErrTitleAlreadyExists = errors.New("такая галерея уже существует")
 	ErrGalleryNotFound    = errors.New("галерея не существует")
 )
 
@@ -28,6 +28,8 @@ type Service struct {
 	writer   http.ResponseWriter
 	db       *sql.DB
 	validate *validator.Validate
+
+	user *user.User
 }
 
 func NewService(ctx router.Ctx) *Service {
@@ -36,15 +38,22 @@ func NewService(ctx router.Ctx) *Service {
 		writer:   ctx.ResponseWriter,
 		db:       ctx.DB,
 		validate: ctx.Validate,
+
+		user: user.CtxUser(ctx),
 	}
 }
 
-func (s *Service) Create(gallery *Gallery) error {
+func (s *Service) Create(title string) (*Gallery, error) {
 	op := "model.gallery.Create"
 
-	err := s.validate.Var(gallery.Title, "required,max=255")
+	gallery := &Gallery{
+		UserID: s.user.ID,
+		Title:  title,
+	}
+
+	err := s.validate.Struct(gallery)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	row := s.db.QueryRow(`
@@ -58,14 +67,14 @@ func (s *Service) Create(gallery *Gallery) error {
 
 		if errors.As(err, &pgError) {
 			if pgError.Code == pgerrcode.UniqueViolation {
-				return errors.Public(err, ErrTitleAlreadyExists.Error())
+				return nil, errors.Public(err, ErrTitleAlreadyExists.Error())
 			}
 		}
 
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
+	return gallery, nil
 }
 
 func (s *Service) ByID(gallery *Gallery) error {

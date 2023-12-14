@@ -3,8 +3,8 @@
 
 <div class="max-w-md">
   <form
+    action="/gallery/new"
     class="group"
-    action="/gallery"
     method="post">
     <p class="hidden">{{csrfInput}}</p>
     <p class="my-2">
@@ -14,19 +14,19 @@
         >Заголовок</label
       >
       <input
+        .Data
+        autofocus
         class="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-gray-800 placeholder-gray-500 invalid:[&:not(:placeholder-shown):not(:focus)]:border-red-500 peer"
         id="title"
+        maxlength="255"
+        minlength="3"
         name="title"
         placeholder="Введите заголовок галереи"
         required
         type="text"
-        {{if
-        .Data
-        }}value="{{.Data}}"
         {{end}}
-        autofocus
-        minlength="3"
-        maxlength="255">
+        {{if
+        }}value="{{.Data}}">
       <span class="mt-2 hidden text-sm text-red-500 peer-[&:not(:placeholder-shown):not(:focus):invalid]:block">
         Названия галереи должно быть не менее 10 и не более 255 символов
       </span>
