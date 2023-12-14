@@ -77,12 +77,16 @@ func (s *Service) Create(title string) (*Gallery, error) {
 	return gallery, nil
 }
 
-func (s *Service) ByID(gallery *Gallery) error {
+func (s *Service) ByID(id uint) (*Gallery, error) {
 	op := "model.gallery.ById"
+
+	gallery := &Gallery{
+		ID: id,
+	}
 
 	err := s.validate.Var(gallery.ID, "required,min=1")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	row := s.db.QueryRow(`
@@ -93,13 +97,13 @@ func (s *Service) ByID(gallery *Gallery) error {
 	err = row.Scan(&gallery.Title, &gallery.UserID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return errors.Public(err, ErrGalleryNotFound.Error())
+			return nil, errors.Public(err, ErrGalleryNotFound.Error())
 		}
 
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
+	return gallery, nil
 }
 
 func (s *Service) ByUserID(us *user.User) ([]Gallery, error) {
@@ -139,15 +143,15 @@ func (s *Service) ByUserID(us *user.User) ([]Gallery, error) {
 	return galleries, nil
 }
 
-func (s *Service) Update(gallery *Gallery) error {
+func (s *Service) Update(gallery *Gallery) (*Gallery, error) {
 	op := "model.gallery.Delete"
 
 	_, err := s.db.Exec(`UPDATE galleries SET title = $1 WHERE id = $2;`, gallery.Title, gallery.ID)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (s *Service) Delete(id uint) error {

@@ -1,9 +1,8 @@
 {{define "page"}}
-<h1 class="mb-10 text-4xl">Создать галерею</h1>
+<h1 class="mb-10 text-4xl">Редактирование галереи</h1>
 
 <div class="max-w-md">
   <form
-    action="/gallery/new"
     class="group"
     method="post">
     <p class="hidden">{{csrfInput}}</p>
@@ -23,17 +22,28 @@
         required
         type="text"
         {{if
-        .Data}}value="{{.Data}}"
+        and
+        .Data
+        .Data.Title}}value="{{.Data.Title}}"
         {{else}}autofocus{{end}}>
       <span class="mt-2 hidden text-sm text-red-500 peer-[&:not(:placeholder-shown):not(:focus):invalid]:block">
         Названия галереи должно быть не менее 10 и не более 255 символов
       </span>
     </p>
-    <p class="mt-5">
+    <p class="flex gap-x-5 mt-5">
       <button
+        formaction="/gallery/{{.Data.ID}}/edit"
         class="rounded bg-cyan-700 px-6 py-2 text-md font-bold text-white transition-colors hover:bg-cyan-800 group-invalid:pointer-events-none group-invalid:opacity-30"
         type="submit">
-        Создать
+        Обновить
+      </button>
+
+      <button
+        onclick="return confirm('Вы точно хотите удалить эту галерею?')"
+        formaction="/gallery/{{.Data.ID}}/delete"
+        class="rounded bg-red-700 px-6 py-2 text-md font-bold text-white transition-colors hover:bg-red-800 group-invalid:pointer-events-none group-invalid:opacity-30"
+        type="submit">
+        Удалить
       </button>
     </p>
   </form>

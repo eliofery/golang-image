@@ -83,6 +83,8 @@ func main() {
 		r.Route("/gallery", func(r *router.Router) {
 			r.Get("/new", gallery.New)
 			r.Post("/new", gallery.Create)
+
+			r.Get("/{id}/edit", gallery.Edit)
 		})
 	})
 
