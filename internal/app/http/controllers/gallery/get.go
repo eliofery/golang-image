@@ -3,6 +3,7 @@ package gallery
 import (
 	"github.com/eliofery/golang-image/internal/app/models/gallery"
 	"github.com/eliofery/golang-image/internal/app/models/user"
+	"github.com/eliofery/golang-image/pkg/cookie"
 	"github.com/eliofery/golang-image/pkg/errors"
 	"github.com/eliofery/golang-image/pkg/router"
 	"github.com/eliofery/golang-image/pkg/tpl"
@@ -16,8 +17,15 @@ var (
 )
 
 func New(ctx router.Ctx) error {
+	message, err := cookie.GetMessage(ctx.Request)
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+	}
+	cookie.Delete(ctx.ResponseWriter, cookie.Message)
+
 	return tpl.Render(ctx, "gallery/new", tpl.Data{
-		Data: ctx.Request.FormValue("title"),
+		Data:     ctx.Request.FormValue("title"),
+		Messages: []any{message},
 	})
 }
 
@@ -53,7 +61,14 @@ func Edit(ctx router.Ctx) error {
 		})
 	}
 
+	message, err := cookie.GetMessage(ctx.Request)
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+	}
+	cookie.Delete(ctx.ResponseWriter, cookie.Message)
+
 	return tpl.Render(ctx, "gallery/edit", tpl.Data{
-		Data: galleryData,
+		Data:     galleryData,
+		Messages: []any{message},
 	})
 }

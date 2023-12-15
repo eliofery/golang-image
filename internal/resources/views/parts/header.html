@@ -82,9 +82,9 @@
   </div>
   {{end}}
 </div>
-{{end}} {{if .Messages}}
+{{end}}
 <div class="py-4 px-2">
-  {{range .Messages}}
+  {{range .Messages}} {{if .}}
   <div class="closeable flex bg-green-100 rounded px-2 py-2 text-green-800 mb-2 container mx-auto">
     <div class="flex-grow">{{.}}</div>
     <a
@@ -104,9 +104,8 @@
       </svg>
     </a>
   </div>
-  {{end}}
+  {{end}} {{end}}
 </div>
-{{end}}
 
 <script>
   function closeAlert(evt) {
