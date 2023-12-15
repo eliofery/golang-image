@@ -85,6 +85,7 @@ func main() {
 			r.Post("/new", gallery.Create)
 
 			r.Get("/{id}/edit", gallery.Edit)
+			r.Post("/{id}/edit", gallery.Update)
 		})
 	})
 

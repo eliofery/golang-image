@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	ErrTitleAlreadyExists = errors.New("такая галерея уже существует")
-	ErrGalleryNotFound    = errors.New("галерея не существует")
+	ErrGalleryAlreadyExists = errors.New("галерея уже существует")
+	ErrGalleryNotFound      = errors.New("галерея не найдена")
 )
 
 type Gallery struct {
@@ -67,7 +67,7 @@ func (s *Service) Create(title string) (*Gallery, error) {
 
 		if errors.As(err, &pgError) {
 			if pgError.Code == pgerrcode.UniqueViolation {
-				return nil, errors.Public(err, ErrTitleAlreadyExists.Error())
+				return nil, errors.Public(err, ErrGalleryAlreadyExists.Error())
 			}
 		}
 
@@ -143,15 +143,23 @@ func (s *Service) ByUserID(us *user.User) ([]Gallery, error) {
 	return galleries, nil
 }
 
-func (s *Service) Update(gallery *Gallery) (*Gallery, error) {
+func (s *Service) Update(gallery *Gallery) error {
 	op := "model.gallery.Delete"
 
 	_, err := s.db.Exec(`UPDATE galleries SET title = $1 WHERE id = $2;`, gallery.Title, gallery.ID)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		var pgError *pgconn.PgError
+
+		if errors.As(err, &pgError) {
+			if pgError.Code == pgerrcode.UniqueViolation {
+				return errors.Public(err, ErrGalleryAlreadyExists.Error())
+			}
+		}
+
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil, nil
+	return nil
 }
 
 func (s *Service) Delete(id uint) error {
