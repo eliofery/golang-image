@@ -106,19 +106,19 @@ func (s *Service) ByID(id uint) (*Gallery, error) {
 	return gallery, nil
 }
 
-func (s *Service) ByUserID(us *user.User) ([]Gallery, error) {
+func (s *Service) ByUserID(id uint) ([]Gallery, error) {
 	op := "model.gallery.ById"
 
-	err := s.validate.Var(us.ID, "required,min=1")
+	err := s.validate.Var(id, "required,min=1")
 	if err != nil {
 		return nil, err
 	}
 
 	rows, err := s.db.Query(`
-        SELECT id, title
+        SELECT id, user_id, title
         FROM galleries
         WHERE user_id = $1;`,
-		us.ID,
+		id,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -128,7 +128,7 @@ func (s *Service) ByUserID(us *user.User) ([]Gallery, error) {
 	for rows.Next() {
 		var gallery Gallery
 
-		err = rows.Scan(&gallery.ID, &gallery.Title)
+		err = rows.Scan(&gallery.ID, &gallery.UserID, &gallery.Title)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}

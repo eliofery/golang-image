@@ -1,0 +1,14 @@
+{{define "page"}}
+<h1 class="mb-10 text-4xl">Список галерей</h1>
+
+{{if .Data}}
+<ul>
+  {{range .Data}}
+  <li>
+    <p>{{.ID}}</p>
+    <p>{{.UserID}}</p>
+    <p>{{.Title}}</p>
+  </li>
+  {{end}}
+</ul>
+{{end}} {{end}}

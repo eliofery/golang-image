@@ -10,17 +10,26 @@
       {{ if currentUser}}
       <li>
         <a
-          class="block hover:underline"
+          class="block py-2 hover:underline"
           href="/user"
           >Профиль
         </a>
       </li>
-      <li>
+      <li class="relative group">
         <a
-          class="block hover:underline"
-          href="/gallery/new"
-          >Создать галерею
+          class="block py-2 hover:underline"
+          href="/gallery">
+          Галерея
         </a>
+        <ul class="absolute top-full w-[250px] py-1 bg-cyan-700 hidden group-hover:block">
+          <li>
+            <a
+              class="block p-2 hover:bg-cyan-800 transition-colors"
+              href="/gallery/new"
+              >Создать галерею
+            </a>
+          </li>
+        </ul>
       </li>
       {{ end }}
     </ul>

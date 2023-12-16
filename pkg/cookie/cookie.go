@@ -64,5 +64,5 @@ func GetMessage(r *http.Request) (string, error) {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	return fmt.Sprintf("%s", message), nil
+	return string(message), nil
 }

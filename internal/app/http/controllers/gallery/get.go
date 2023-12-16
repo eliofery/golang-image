@@ -16,6 +16,23 @@ var (
 	errNotAllowed = errors.New("нет доступа к галереи")
 )
 
+func Index(ctx router.Ctx) error {
+	service := gallery.NewService(ctx)
+
+	userData := user.CtxUser(ctx)
+	galleriesData, err := service.ByUserID(userData.ID)
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+		ctx.ResponseWriter.WriteHeader(http.StatusInternalServerError)
+
+		return tpl.Render(ctx, "error/404", tpl.Data{})
+	}
+
+	return tpl.Render(ctx, "gallery/index", tpl.Data{
+		Data: galleriesData,
+	})
+}
+
 func New(ctx router.Ctx) error {
 	message, err := cookie.GetMessage(ctx.Request)
 	if err != nil {
