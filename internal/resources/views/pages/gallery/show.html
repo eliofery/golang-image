@@ -1,0 +1,17 @@
+{{define "page"}}
+<h1 class="mb-10 text-4xl">Просмотр галереи <b>{{.Data.Title}}</b></h1>
+
+<div class="columns-4 gap-4 space-y-4">
+  {{range .Data.Images}}
+  <div class="h-min w-full">
+    <a href="{{.}}"
+      ><img
+        alt=""
+        class="w-full"
+        src="{{.}}">
+    </a>
+  </div>
+  {{end}}
+</div>
+
+{{end}}

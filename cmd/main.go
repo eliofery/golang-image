@@ -72,6 +72,8 @@ func main() {
 	route.NotFound(notfound.Page404)
 	route.MethodNotAllowed(notfound.Page405)
 
+	route.Get("/gallery/{id}", gallery.Show)
+
 	route.Group(func(r *router.Router) {
 		r.Chi.Use(mw.Auth)
 

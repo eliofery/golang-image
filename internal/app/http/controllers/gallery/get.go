@@ -1,6 +1,7 @@
 package gallery
 
 import (
+	"fmt"
 	"github.com/eliofery/golang-image/internal/app/models/gallery"
 	"github.com/eliofery/golang-image/internal/app/models/user"
 	"github.com/eliofery/golang-image/pkg/cookie"
@@ -8,6 +9,7 @@ import (
 	"github.com/eliofery/golang-image/pkg/router"
 	"github.com/eliofery/golang-image/pkg/tpl"
 	"github.com/go-chi/chi/v5"
+	"math/rand"
 	"net/http"
 	"strconv"
 )
@@ -37,6 +39,53 @@ func Index(ctx router.Ctx) error {
 	return tpl.Render(ctx, "gallery/index", tpl.Data{
 		Data:     galleriesData,
 		Messages: []any{message},
+	})
+}
+
+func Show(ctx router.Ctx) error {
+	id, err := strconv.Atoi(chi.URLParam(ctx.Request, "id"))
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+		ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
+
+		return tpl.Render(ctx, "error/404", tpl.Data{})
+	}
+
+	service := gallery.NewService(ctx)
+
+	galleryData, err := service.ByID(uint(id))
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+		ctx.ResponseWriter.WriteHeader(http.StatusInternalServerError)
+
+		return tpl.Render(ctx, "error/404", tpl.Data{})
+	}
+
+	userData := user.CtxUser(ctx)
+	if galleryData.UserID != userData.ID {
+		ctx.Logger.Info(err.Error())
+		ctx.ResponseWriter.WriteHeader(http.StatusMethodNotAllowed)
+
+		return tpl.Render(ctx, "error/405", tpl.Data{})
+	}
+
+	data := struct {
+		ID     uint
+		Title  string
+		Images []string
+	}{
+		ID:    galleryData.ID,
+		Title: galleryData.Title,
+	}
+
+	for i := 0; i < 20; i++ {
+		w, h := rand.Intn(500)+200, rand.Intn(500)+200
+		imageUrl := fmt.Sprintf("https://placekitten.com/%d/%d", w, h)
+		data.Images = append(data.Images, imageUrl)
+	}
+
+	return tpl.Render(ctx, "gallery/show", tpl.Data{
+		Data: data,
 	})
 }
 
