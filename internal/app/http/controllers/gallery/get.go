@@ -28,8 +28,15 @@ func Index(ctx router.Ctx) error {
 		return tpl.Render(ctx, "error/404", tpl.Data{})
 	}
 
+	message, err := cookie.GetMessage(ctx.Request)
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+	}
+	cookie.Delete(ctx.ResponseWriter, cookie.Message)
+
 	return tpl.Render(ctx, "gallery/index", tpl.Data{
-		Data: galleriesData,
+		Data:     galleriesData,
+		Messages: []any{message},
 	})
 }
 

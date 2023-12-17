@@ -118,7 +118,7 @@ func Delete(ctx router.Ctx) error {
 
 	cookie.SetMessage(ctx.ResponseWriter, "Галерея успешно удалена")
 
-	http.Redirect(ctx.ResponseWriter, ctx.Request, "/gallery/new", http.StatusFound)
+	http.Redirect(ctx.ResponseWriter, ctx.Request, "/gallery", http.StatusFound)
 
 	return nil
 }
