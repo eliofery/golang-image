@@ -7,7 +7,7 @@ import (
 	"io/fs"
 	"net/http"
 	"path"
-	"strings"
+	"path/filepath"
 )
 
 const (
@@ -16,22 +16,18 @@ const (
 )
 
 var (
-	pathView    = pathJoin("views")
-	pathLayouts = pathJoin(pathView + "/layouts")
-	pathPages   = pathJoin(pathView + "/pages")
-	pathParts   = pathJoin(pathView + "/parts")
+	pathView    = filepath.Join("views")
+	pathLayouts = filepath.Join(pathView + "/layouts")
+	pathPages   = filepath.Join(pathView + "/pages")
+	pathParts   = filepath.Join(pathView + "/parts")
 )
-
-func pathJoin(p string) string {
-	return path.Join(strings.Split(p, "/")...)
-}
 
 func getLayout(layout string) string {
 	return path.Join(pathLayouts, layout+fileExt)
 }
 
 func getPage(page string) string {
-	return path.Join(pathPages, pathJoin(page)+fileExt)
+	return path.Join(pathPages, filepath.Join(page)+fileExt)
 }
 
 func getParts() ([]string, error) {

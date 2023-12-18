@@ -4,10 +4,11 @@ import (
 	"github.com/eliofery/golang-image/internal/resources"
 	"github.com/go-chi/chi/v5"
 	"net/http"
+	"path/filepath"
 )
 
 var (
-	assetsDir     = pathJoin("internal/resources/assets")
+	assetsDir     = filepath.Join("internal/resources/assets")
 	assetsPrefix  = "/assets/"
 	assetsPattern = assetsPrefix + "*"
 )
@@ -18,5 +19,6 @@ func AssetsInit(route *chi.Mux) {
 }
 
 func AssetsFsInit(route *chi.Mux) {
-	route.Handle(assetsPattern, http.FileServer(http.FS(resources.Assets)))
+	fs := http.FileServer(http.FS(resources.Assets))
+	route.Handle(assetsPattern, fs)
 }
