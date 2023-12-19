@@ -3,6 +3,7 @@ package gallery
 import (
 	"fmt"
 	"github.com/eliofery/golang-image/internal/app/models/gallery"
+	"github.com/eliofery/golang-image/internal/app/models/image"
 	"github.com/eliofery/golang-image/internal/app/models/user"
 	"github.com/eliofery/golang-image/pkg/cookie"
 	"github.com/eliofery/golang-image/pkg/errors"
@@ -19,10 +20,17 @@ var (
 )
 
 func Index(ctx router.Ctx) error {
-	service := gallery.NewService(ctx)
+	sGallery := gallery.NewService(ctx)
+	sImage := image.NewService(ctx)
+
+	images, err := sImage.Images(1)
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+	}
+	_ = images
 
 	userData := user.CtxUser(ctx)
-	galleriesData, err := service.ByUserID(userData.ID)
+	galleriesData, err := sGallery.ByUserID(userData.ID)
 	if err != nil {
 		ctx.Logger.Info(err.Error())
 		ctx.ResponseWriter.WriteHeader(http.StatusInternalServerError)
