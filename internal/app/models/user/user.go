@@ -10,7 +10,6 @@ import (
 	"github.com/eliofery/golang-image/pkg/errors"
 	"github.com/eliofery/golang-image/pkg/rand"
 	"github.com/eliofery/golang-image/pkg/router"
-	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
@@ -31,21 +30,17 @@ type User struct {
 }
 
 type Service struct {
-	ctx      router.Ctx
-	db       *sql.DB
-	validate *validator.Validate
-	email    *email.Service
+	ctx router.Ctx
 
+	email   *email.Service
 	session *session.Service
 }
 
 func NewService(ctx router.Ctx) *Service {
 	return &Service{
-		ctx:      ctx,
-		db:       ctx.DB,
-		validate: ctx.Validate,
-		email:    email.NewService(),
+		ctx: ctx,
 
+		email:   email.NewService(),
 		session: session.NewService(ctx),
 	}
 }
@@ -58,7 +53,7 @@ func (s *Service) SignUp(mail, password string) (*User, error) {
 		Password: password,
 	}
 
-	err := s.validate.Struct(user)
+	err := s.ctx.Validate.Struct(user)
 	if err != nil {
 		return user, err
 	}
@@ -68,7 +63,7 @@ func (s *Service) SignUp(mail, password string) (*User, error) {
 		return user, fmt.Errorf("%s: %w", op, err)
 	}
 
-	row := s.db.QueryRow(
+	row := s.ctx.DB.QueryRow(
 		`INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id`,
 		user.Email, string(hashedPassword),
 	)
@@ -128,12 +123,12 @@ func (s *Service) SignIn(mail, password string) (*User, error) {
 		Password: password,
 	}
 
-	err := s.validate.Struct(user)
+	err := s.ctx.Validate.Struct(user)
 	if err != nil {
 		return user, err
 	}
 
-	row := s.db.QueryRow("SELECT * FROM users WHERE email = $1", user.Email)
+	row := s.ctx.DB.QueryRow("SELECT * FROM users WHERE email = $1", user.Email)
 	err = row.Scan(&user.ID, &user.Email, &user.Password)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -164,7 +159,7 @@ func (s *Service) UpdatePassword(us *User) error {
 	}
 	passwordHash := string(hashedBytes)
 
-	_, err = s.db.Exec(`
+	_, err = s.ctx.DB.Exec(`
         UPDATE users
         SET password = $1
         WHERE id = $2;`, passwordHash, us.ID)

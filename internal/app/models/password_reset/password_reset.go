@@ -9,7 +9,6 @@ import (
 	"github.com/eliofery/golang-image/pkg/errors"
 	"github.com/eliofery/golang-image/pkg/rand"
 	"github.com/eliofery/golang-image/pkg/router"
-	"github.com/go-playground/validator/v10"
 	"net/url"
 	"os"
 	"strings"
@@ -33,22 +32,18 @@ type PasswordReset struct {
 }
 
 type Service struct {
-	ctx      router.Ctx
-	db       *sql.DB
-	validate *validator.Validate
-	email    *email.Service
+	ctx router.Ctx
 
-	user *user.Service
+	email *email.Service
+	user  *user.Service
 }
 
 func NewService(ctx router.Ctx) *Service {
 	return &Service{
-		ctx:      ctx,
-		db:       ctx.DB,
-		validate: ctx.Validate,
-		email:    email.NewService(),
+		ctx: ctx,
 
-		user: user.NewService(ctx),
+		email: email.NewService(),
+		user:  user.NewService(ctx),
 	}
 }
 
@@ -59,12 +54,12 @@ func (s *Service) Create(mail string) (*user.User, error) {
 		Email: strings.ToLower(mail),
 	}
 
-	err := s.validate.Var(us.Email, "required,email")
+	err := s.ctx.Validate.Var(us.Email, "required,email")
 	if err != nil {
 		return nil, err
 	}
 
-	row := s.db.QueryRow(`SELECT id FROM users WHERE email = $1`, us.Email)
+	row := s.ctx.DB.QueryRow(`SELECT id FROM users WHERE email = $1`, us.Email)
 	err = row.Scan(&us.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -84,7 +79,7 @@ func (s *Service) Create(mail string) (*user.User, error) {
 		ExpiresAt: time.Now().Add(DefaultResetDuration),
 	}
 
-	row = s.db.QueryRow(`
+	row = s.ctx.DB.QueryRow(`
         INSERT INTO password_reset (user_id, token_hash, expires_at) VALUES ($1, $2, $3)
         ON CONFLICT (user_id) DO
         UPDATE SET token_hash = $2, expires_at = $3
@@ -124,12 +119,12 @@ func (s *Service) Create(mail string) (*user.User, error) {
 func (s *Service) Consume(password, token string) (string, error) {
 	op := "model.pwreset.Consume"
 
-	err := s.validate.Var(password, "required,gte=10,lte=32")
+	err := s.ctx.Validate.Var(password, "required,gte=10,lte=32")
 	if err != nil {
 		return token, err
 	}
 
-	err = s.validate.Var(token, "required")
+	err = s.ctx.Validate.Var(token, "required")
 	if err != nil {
 		return token, err
 	}
@@ -143,7 +138,7 @@ func (s *Service) Consume(password, token string) (string, error) {
 		ExpiresAt: time.Now().Add(DefaultResetDuration),
 	}
 
-	row := s.db.QueryRow(`
+	row := s.ctx.DB.QueryRow(`
         SELECT password_reset.id, password_reset.expires_at, users.id, users.email
         FROM password_reset
         INNER JOIN users ON users.id = password_reset.user_id
@@ -181,7 +176,7 @@ func (s *Service) Consume(password, token string) (string, error) {
 func (s *Service) Delete(pwReset *PasswordReset) error {
 	op := "model.pwreset.Delete"
 
-	_, err := s.db.Exec(`
+	_, err := s.ctx.DB.Exec(`
         DELETE FROM password_reset
         WHERE id = $1;`, pwReset.ID)
 	if err != nil {

@@ -6,10 +6,8 @@ import (
 	"github.com/eliofery/golang-image/internal/app/models/user"
 	"github.com/eliofery/golang-image/pkg/errors"
 	"github.com/eliofery/golang-image/pkg/router"
-	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
-	"net/http"
 )
 
 var (
@@ -24,20 +22,14 @@ type Gallery struct {
 }
 
 type Service struct {
-	ctx      router.Ctx
-	writer   http.ResponseWriter
-	db       *sql.DB
-	validate *validator.Validate
+	ctx router.Ctx
 
 	user *user.User
 }
 
 func NewService(ctx router.Ctx) *Service {
 	return &Service{
-		ctx:      ctx,
-		writer:   ctx.ResponseWriter,
-		db:       ctx.DB,
-		validate: ctx.Validate,
+		ctx: ctx,
 
 		user: user.CtxUser(ctx),
 	}
@@ -51,12 +43,12 @@ func (s *Service) Create(title string) (*Gallery, error) {
 		Title:  title,
 	}
 
-	err := s.validate.Struct(gallery)
+	err := s.ctx.Validate.Struct(gallery)
 	if err != nil {
 		return nil, err
 	}
 
-	row := s.db.QueryRow(`
+	row := s.ctx.DB.QueryRow(`
         INSERT INTO galleries (user_id, title)
         VALUES ($1, $2) RETURNING id;`,
 		gallery.UserID, gallery.Title,
@@ -84,12 +76,12 @@ func (s *Service) ByID(id uint) (*Gallery, error) {
 		ID: id,
 	}
 
-	err := s.validate.Var(gallery.ID, "required,min=1")
+	err := s.ctx.Validate.Var(gallery.ID, "required,min=1")
 	if err != nil {
 		return nil, err
 	}
 
-	row := s.db.QueryRow(`
+	row := s.ctx.DB.QueryRow(`
         SELECT title, user_id
         FROM galleries WHERE id = $1;`,
 		gallery.ID,
@@ -109,12 +101,12 @@ func (s *Service) ByID(id uint) (*Gallery, error) {
 func (s *Service) ByUserID(id uint) ([]Gallery, error) {
 	op := "model.gallery.ById"
 
-	err := s.validate.Var(id, "required,min=1")
+	err := s.ctx.Validate.Var(id, "required,min=1")
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := s.db.Query(`
+	rows, err := s.ctx.DB.Query(`
         SELECT id, user_id, title
         FROM galleries
         WHERE user_id = $1;`,
@@ -146,7 +138,7 @@ func (s *Service) ByUserID(id uint) ([]Gallery, error) {
 func (s *Service) Update(gallery *Gallery) error {
 	op := "model.gallery.Delete"
 
-	_, err := s.db.Exec(`UPDATE galleries SET title = $1 WHERE id = $2;`, gallery.Title, gallery.ID)
+	_, err := s.ctx.DB.Exec(`UPDATE galleries SET title = $1 WHERE id = $2;`, gallery.Title, gallery.ID)
 	if err != nil {
 		var pgError *pgconn.PgError
 
@@ -165,7 +157,7 @@ func (s *Service) Update(gallery *Gallery) error {
 func (s *Service) Delete(id uint) error {
 	op := "model.gallery.Delete"
 
-	_, err := s.db.Exec(`DELETE FROM galleries WHERE id = $1;`, id)
+	_, err := s.ctx.DB.Exec(`DELETE FROM galleries WHERE id = $1;`, id)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

@@ -1,13 +1,10 @@
 package session
 
 import (
-	"database/sql"
 	"fmt"
 	"github.com/eliofery/golang-image/pkg/cookie"
 	"github.com/eliofery/golang-image/pkg/rand"
 	"github.com/eliofery/golang-image/pkg/router"
-	"github.com/go-playground/validator/v10"
-	"net/http"
 )
 
 type Session struct {
@@ -17,18 +14,12 @@ type Session struct {
 }
 
 type Service struct {
-	ctx      router.Ctx
-	writer   http.ResponseWriter
-	db       *sql.DB
-	validate *validator.Validate
+	ctx router.Ctx
 }
 
 func NewService(ctx router.Ctx) *Service {
 	return &Service{
-		ctx:      ctx,
-		writer:   ctx.ResponseWriter,
-		db:       ctx.DB,
-		validate: ctx.Validate,
+		ctx: ctx,
 	}
 }
 
@@ -42,12 +33,12 @@ func (s *Service) Create(session *Session) error {
 
 	session.TokenHash = rand.HashToken(token)
 
-	err = s.validate.Struct(session)
+	err = s.ctx.Validate.Struct(session)
 	if err != nil {
 		return err
 	}
 
-	row := s.db.QueryRow(`
+	row := s.ctx.DB.QueryRow(`
         INSERT INTO sessions (user_id, token_hash) VALUES ($1, $2)
         ON CONFLICT (user_id) DO
         UPDATE SET token_hash = $2
@@ -58,7 +49,7 @@ func (s *Service) Create(session *Session) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	cookie.Set(s.writer, cookie.Session, token)
+	cookie.Set(s.ctx.ResponseWriter, cookie.Session, token)
 
 	return nil
 }

@@ -7,14 +7,14 @@ import (
 )
 
 type Router struct {
-	Chi *chi.Mux
+	*chi.Mux
 }
 
 type HandleCtx func(ctx Ctx) error
 
 func New() *Router {
 	return &Router{
-		Chi: chi.NewRouter(),
+		Mux: chi.NewRouter(),
 	}
 }
 
@@ -39,31 +39,31 @@ func (rt *Router) handlerCtx(handler HandleCtx, w http.ResponseWriter, r *http.R
 }
 
 func (rt *Router) Get(path string, handler HandleCtx) {
-	rt.Chi.Get(path, func(w http.ResponseWriter, r *http.Request) {
+	rt.Mux.Get(path, func(w http.ResponseWriter, r *http.Request) {
 		rt.handlerCtx(handler, w, r)
 	})
 }
 
 func (rt *Router) Post(path string, handler HandleCtx) {
-	rt.Chi.Post(path, func(w http.ResponseWriter, r *http.Request) {
+	rt.Mux.Post(path, func(w http.ResponseWriter, r *http.Request) {
 		rt.handlerCtx(handler, w, r)
 	})
 }
 
 func (rt *Router) NotFound(handler HandleCtx) {
-	rt.Chi.NotFound(func(w http.ResponseWriter, r *http.Request) {
+	rt.Mux.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		rt.handlerCtx(handler, w, r)
 	})
 }
 
 func (rt *Router) MethodNotAllowed(handler HandleCtx) {
-	rt.Chi.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+	rt.Mux.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		rt.handlerCtx(handler, w, r)
 	})
 }
 
 func (rt *Router) Use(middlewares ...func(http.Handler) http.Handler) {
-	rt.Chi.Use(middlewares...)
+	rt.Mux.Use(middlewares...)
 }
 
 func (rt *Router) Group(fn func(r *Router)) Router {
@@ -78,7 +78,7 @@ func (rt *Router) Group(fn func(r *Router)) Router {
 
 func (rt *Router) With() Router {
 	return Router{
-		Chi: rt.Chi.With().(*chi.Mux),
+		Mux: rt.Mux.With().(*chi.Mux),
 	}
 }
 
@@ -86,11 +86,11 @@ func (rt *Router) Route(pattern string, fn func(r *Router)) *chi.Mux {
 	subRouter := New()
 
 	fn(subRouter)
-	rt.Chi.Mount(pattern, subRouter.Chi)
+	rt.Mux.Mount(pattern, subRouter.Mux)
 
-	return subRouter.Chi
+	return subRouter.Mux
 }
 
 func (rt *Router) ServeHTTP() http.HandlerFunc {
-	return rt.Chi.ServeHTTP
+	return rt.Mux.ServeHTTP
 }
