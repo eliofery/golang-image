@@ -58,7 +58,7 @@ func main() {
 	route.Use(middleware.RealIP)
 	route.Use(middleware.Logger)
 	route.Use(middleware.Recoverer)
-	route.Use(middleware.URLFormat)
+	//route.Use(middleware.URLFormat)
 	route.Use(mw.Csrf)
 	route.Use(mw.Inject(logger, db, validate))
 	route.Use(mw.SetUser)
@@ -83,6 +83,7 @@ func main() {
 		r.Route("/gallery", func(r *router.Router) {
 			r.Get("/", gallery.Index)
 			r.Get("/{id}", gallery.Show)
+			r.Get("/{id}/images/{filename}", gallery.Image)
 
 			r.Get("/new", gallery.New)
 			r.Post("/new", gallery.Create)

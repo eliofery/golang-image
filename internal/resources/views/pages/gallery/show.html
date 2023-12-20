@@ -4,11 +4,12 @@
 <div class="columns-4 gap-4 space-y-4">
   {{range .Data.Images}}
   <div class="h-min w-full">
-    <a href="{{.}}"
+    <a href="/gallery/{{.GalleryID}}/images/{{.FileName}}"
       ><img
         alt=""
         class="w-full"
-        src="{{.}}">
+        loading="lazy"
+        src="/gallery/{{.GalleryID}}/images/{{.FileName}}">
     </a>
   </div>
   {{end}}

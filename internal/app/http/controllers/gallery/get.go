@@ -10,7 +10,6 @@ import (
 	"github.com/eliofery/golang-image/pkg/router"
 	"github.com/eliofery/golang-image/pkg/tpl"
 	"github.com/go-chi/chi/v5"
-	"math/rand"
 	"net/http"
 	"strconv"
 )
@@ -21,13 +20,6 @@ var (
 
 func Index(ctx router.Ctx) error {
 	sGallery := gallery.NewService(ctx)
-	sImage := image.NewService(ctx)
-
-	images, err := sImage.Images(1)
-	if err != nil {
-		ctx.Logger.Info(err.Error())
-	}
-	_ = images
 
 	userData := user.CtxUser(ctx)
 	galleriesData, err := sGallery.ByUserID(userData.ID)
@@ -59,9 +51,10 @@ func Show(ctx router.Ctx) error {
 		return tpl.Render(ctx, "error/404", tpl.Data{})
 	}
 
-	service := gallery.NewService(ctx)
+	sGallery := gallery.NewService(ctx)
+	sImage := image.NewService(ctx)
 
-	galleryData, err := service.ByID(uint(id))
+	galleryData, err := sGallery.ByID(uint(id))
 	if err != nil {
 		ctx.Logger.Info(err.Error())
 		ctx.ResponseWriter.WriteHeader(http.StatusInternalServerError)
@@ -77,19 +70,22 @@ func Show(ctx router.Ctx) error {
 		return tpl.Render(ctx, "error/405", tpl.Data{})
 	}
 
+	images, err := sImage.Images(galleryData.ID)
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+		ctx.ResponseWriter.WriteHeader(http.StatusInternalServerError)
+
+		return tpl.Render(ctx, "error/500", tpl.Data{})
+	}
+
 	data := struct {
 		ID     uint
 		Title  string
-		Images []string
+		Images []image.Image
 	}{
-		ID:    galleryData.ID,
-		Title: galleryData.Title,
-	}
-
-	for i := 0; i < 20; i++ {
-		w, h := rand.Intn(500)+200, rand.Intn(500)+200
-		imageUrl := fmt.Sprintf("https://placekitten.com/%d/%d", w, h)
-		data.Images = append(data.Images, imageUrl)
+		ID:     galleryData.ID,
+		Title:  galleryData.Title,
+		Images: images,
 	}
 
 	return tpl.Render(ctx, "gallery/show", tpl.Data{
@@ -152,4 +148,35 @@ func Edit(ctx router.Ctx) error {
 		Data:     galleryData,
 		Messages: []any{message},
 	})
+}
+
+func Image(ctx router.Ctx) error {
+	fileName := chi.URLParam(ctx.Request, "filename")
+	fmt.Println(fileName)
+
+	galleryID, err := strconv.Atoi(chi.URLParam(ctx.Request, "id"))
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+
+		ctx.ResponseWriter.WriteHeader(http.StatusInternalServerError)
+		return nil
+	}
+
+	sImage := image.NewService(ctx)
+	imageData, err := sImage.Image(uint(galleryID), fileName)
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+
+		if errors.Is(err, image.ErrNotFound) {
+			ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
+			return nil
+		}
+
+		ctx.ResponseWriter.WriteHeader(http.StatusInternalServerError)
+		return nil
+	}
+
+	http.ServeFile(ctx.ResponseWriter, ctx.Request, imageData.FilePath)
+
+	return nil
 }
