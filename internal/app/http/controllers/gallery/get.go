@@ -117,9 +117,10 @@ func Edit(ctx router.Ctx) error {
 		})
 	}
 
-	service := gallery.NewService(ctx)
+	sGallery := gallery.NewService(ctx)
+	sImage := image.NewService(ctx)
 
-	galleryData, err := service.ByID(uint(id))
+	galleryData, err := sGallery.ByID(uint(id))
 	if err != nil {
 		ctx.Logger.Info(err.Error())
 		ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
@@ -144,8 +145,26 @@ func Edit(ctx router.Ctx) error {
 	}
 	cookie.Delete(ctx.ResponseWriter, cookie.Message)
 
+	images, err := sImage.Images(galleryData.ID)
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+		ctx.ResponseWriter.WriteHeader(http.StatusInternalServerError)
+
+		return tpl.Render(ctx, "error/500", tpl.Data{})
+	}
+
+	data := struct {
+		ID     uint
+		Title  string
+		Images []image.Image
+	}{
+		ID:     galleryData.ID,
+		Title:  galleryData.Title,
+		Images: images,
+	}
+
 	return tpl.Render(ctx, "gallery/edit", tpl.Data{
-		Data:     galleryData,
+		Data:     data,
 		Messages: []any{message},
 	})
 }

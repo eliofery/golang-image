@@ -32,20 +32,57 @@
     </p>
     <p class="flex gap-x-5 mt-5">
       <button
-        formaction="/gallery/{{.Data.ID}}/edit"
         class="rounded bg-cyan-700 px-6 py-2 text-md font-bold text-white transition-colors hover:bg-cyan-800 group-invalid:pointer-events-none group-invalid:opacity-30"
+        formaction="/gallery/{{.Data.ID}}/edit"
         type="submit">
         Обновить
       </button>
 
       <button
-        onclick="return confirm('Вы точно хотите удалить эту галерею?')"
-        formaction="/gallery/{{.Data.ID}}/delete"
         class="rounded bg-red-700 px-6 py-2 text-md font-bold text-white transition-colors hover:bg-red-800 group-invalid:pointer-events-none group-invalid:opacity-30"
+        formaction="/gallery/{{.Data.ID}}/delete"
+        onclick="return confirm('Вы точно хотите удалить эту галерею?')"
         type="submit">
         Удалить
       </button>
     </p>
   </form>
+</div>
+
+<div class="my-8">
+  <h2 class="mb-4 font-semibold text-gray-800">Список изображений</h2>
+  <div class="py-2 grid grid-cols-9 gap-5">
+    {{range .Data.Images}}
+    <div class="h-[150px] w-[150px] relative group">
+      <img
+        alt=""
+        class="w-full h-full object-cover"
+        loading="lazy"
+        src="/gallery/{{.GalleryID}}/images/{{.FileName}}">
+      <form
+        action="/gallery/{{.GalleryID}}/images/{{.FileName}}/delete"
+        method="post"
+        onsubmit="return confirm('Вы точно хотите удалить этот изображение?')">
+        {{csrfInput}}
+        <button
+          class="absolute invisible group-hover:visible flex items-center justify-center text-white top-[-5px] right-[-5px] w-[20px] h-[20px] rounded-full bg-red-600 hover:bg-red-700 transition-all shadow-md"
+          type="submit">
+          <svg
+            class="w-[15px] h-[15px]"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M6 18 18 6M6 6l12 12"
+              stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+        </button>
+      </form>
+    </div>
+    {{end}}
+  </div>
 </div>
 {{end}}
