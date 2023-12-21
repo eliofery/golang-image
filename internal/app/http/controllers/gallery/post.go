@@ -11,6 +11,7 @@ import (
 	"github.com/eliofery/golang-image/pkg/tpl"
 	"github.com/go-chi/chi/v5"
 	"net/http"
+	"path/filepath"
 	"strconv"
 )
 
@@ -125,7 +126,7 @@ func Delete(ctx router.Ctx) error {
 }
 
 func DeleteImage(ctx router.Ctx) error {
-	filename := chi.URLParam(ctx.Request, "filename")
+	filename := filepath.Base(chi.URLParam(ctx.Request, "filename"))
 	id, err := strconv.Atoi(chi.URLParam(ctx.Request, "id"))
 	if err != nil {
 		ctx.Logger.Info(err.Error())

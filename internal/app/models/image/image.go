@@ -71,7 +71,7 @@ func (s *Service) Image(galleryID uint, filename string) (Image, error) {
 	return Image{
 		GalleryID: galleryID,
 		FilePath:  imagePath,
-		FileName:  filename,
+		FileName:  url.PathEscape(filepath.Base(filename)),
 	}, nil
 }
 

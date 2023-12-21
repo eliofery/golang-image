@@ -1,7 +1,6 @@
 package gallery
 
 import (
-	"fmt"
 	"github.com/eliofery/golang-image/internal/app/models/gallery"
 	"github.com/eliofery/golang-image/internal/app/models/image"
 	"github.com/eliofery/golang-image/internal/app/models/user"
@@ -11,6 +10,7 @@ import (
 	"github.com/eliofery/golang-image/pkg/tpl"
 	"github.com/go-chi/chi/v5"
 	"net/http"
+	"path/filepath"
 	"strconv"
 )
 
@@ -170,8 +170,7 @@ func Edit(ctx router.Ctx) error {
 }
 
 func Image(ctx router.Ctx) error {
-	fileName := chi.URLParam(ctx.Request, "filename")
-	fmt.Println(fileName)
+	fileName := filepath.Base(chi.URLParam(ctx.Request, "filename"))
 
 	galleryID, err := strconv.Atoi(chi.URLParam(ctx.Request, "id"))
 	if err != nil {
