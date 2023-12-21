@@ -83,7 +83,9 @@ func main() {
 		r.Route("/gallery", func(r *router.Router) {
 			r.Get("/", gallery.Index)
 			r.Get("/{id}", gallery.Show)
+
 			r.Get("/{id}/images/{filename}", gallery.Image)
+			r.Post("/{id}/images/{filename}/delete", gallery.DeleteImage)
 
 			r.Get("/new", gallery.New)
 			r.Post("/new", gallery.Create)

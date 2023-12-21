@@ -75,6 +75,22 @@ func (s *Service) Image(galleryID uint, filename string) (Image, error) {
 	}, nil
 }
 
+func (s *Service) Delete(galleryID uint, filename string) error {
+	op := "model.image.Delete"
+
+	image, err := s.Image(galleryID, filename)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	err = os.Remove(image.FilePath)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
 func galleriesDir(id uint) string {
 	dir := os.Getenv("STATIC_DIR")
 	if dir == "" {

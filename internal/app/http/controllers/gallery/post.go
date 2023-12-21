@@ -3,6 +3,7 @@ package gallery
 import (
 	"fmt"
 	"github.com/eliofery/golang-image/internal/app/models/gallery"
+	"github.com/eliofery/golang-image/internal/app/models/image"
 	"github.com/eliofery/golang-image/internal/app/models/user"
 	"github.com/eliofery/golang-image/pkg/cookie"
 	"github.com/eliofery/golang-image/pkg/errors"
@@ -119,6 +120,52 @@ func Delete(ctx router.Ctx) error {
 	cookie.SetMessage(ctx.ResponseWriter, "Галерея успешно удалена")
 
 	http.Redirect(ctx.ResponseWriter, ctx.Request, "/gallery", http.StatusFound)
+
+	return nil
+}
+
+func DeleteImage(ctx router.Ctx) error {
+	filename := chi.URLParam(ctx.Request, "filename")
+	id, err := strconv.Atoi(chi.URLParam(ctx.Request, "id"))
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+		ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
+
+		return tpl.Render(ctx, "error/404", tpl.Data{})
+	}
+
+	sGallery := gallery.NewService(ctx)
+	sImage := image.NewService(ctx)
+
+	galleryData, err := sGallery.ByID(uint(id))
+	if err != nil {
+		ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
+
+		return tpl.Render(ctx, "error/404", tpl.Data{})
+	}
+
+	userData := user.CtxUser(ctx)
+	if galleryData.UserID != userData.ID {
+		ctx.ResponseWriter.WriteHeader(http.StatusMethodNotAllowed)
+
+		return tpl.Render(ctx, "error/405", tpl.Data{
+			Errors: []error{errors.Public(err, errNotAllowed.Error())},
+		})
+	}
+
+	err = sImage.Delete(galleryData.ID, filename)
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+		ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
+
+		return tpl.Render(ctx, "error/404", tpl.Data{})
+	}
+
+	cookie.SetMessage(ctx.ResponseWriter, "Изображение успешно удалено")
+
+	editPath := fmt.Sprintf("/gallery/%d/edit", galleryData.ID)
+
+	http.Redirect(ctx.ResponseWriter, ctx.Request, editPath, http.StatusFound)
 
 	return nil
 }
