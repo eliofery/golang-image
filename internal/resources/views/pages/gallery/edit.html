@@ -49,9 +49,44 @@
   </form>
 </div>
 
+<div class="max-w-md my-8">
+  <form
+    class="group"
+    action="/gallery/{{.Data.ID}}/images"
+    method="post"
+    enctype="multipart/form-data">
+    <p class="hidden">{{csrfInput}}</p>
+    <p class="my-2">
+      <label
+        class="text-sm font-bold text-gray-800"
+        for="images"
+      >Изображение</label>
+      <span class="block text-sm text-gray-500">Поддерживаемые форматы <b>jpg</b>, <b>jpeg</b>, <b>png</b></span>
+      <input
+        class="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-gray-800 placeholder-gray-500 invalid:[&:not(:placeholder-shown):not(:focus)]:border-red-500 peer"
+        id="images"
+        name="images"
+        multiple
+        accept="image/jpeg, image/jpg, image/png"
+        type="file">
+      <span class="mt-2 hidden text-sm text-red-500 peer-[&:not(:placeholder-shown):not(:focus):invalid]:block">
+        Загрузите изображение
+      </span>
+    </p>
+    <p class="flex gap-x-5 mt-5">
+      <button
+        class="rounded bg-cyan-700 px-6 py-2 text-md font-bold text-white transition-colors hover:bg-cyan-800 group-invalid:pointer-events-none group-invalid:opacity-30"
+        type="submit">
+        Загрузить
+      </button>
+    </p>
+  </form>
+</div>
+
 <div class="my-8">
   <h2 class="mb-4 font-semibold text-gray-800">Список изображений</h2>
   <div class="py-2 grid grid-cols-9 gap-5">
+    {{if and .Data .Data.Images}}
     {{range .Data.Images}}
     <div class="h-[150px] w-[150px] relative group">
       <img
@@ -82,6 +117,9 @@
         </button>
       </form>
     </div>
+    {{end}}
+    {{else}}
+    <p class="text-gray-500">Нет изображений</p>
     {{end}}
   </div>
 </div>
