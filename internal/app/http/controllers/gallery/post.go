@@ -10,6 +10,7 @@ import (
 	"github.com/eliofery/golang-image/pkg/router"
 	"github.com/eliofery/golang-image/pkg/tpl"
 	"github.com/go-chi/chi/v5"
+	"io"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -167,6 +168,73 @@ func DeleteImage(ctx router.Ctx) error {
 	editPath := fmt.Sprintf("/gallery/%d/edit", galleryData.ID)
 
 	http.Redirect(ctx.ResponseWriter, ctx.Request, editPath, http.StatusFound)
+
+	return nil
+}
+
+func UploadImage(ctx router.Ctx) error {
+	id, err := strconv.Atoi(chi.URLParam(ctx.Request, "id"))
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+		ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
+
+		return tpl.Render(ctx, "error/404", tpl.Data{
+			Errors: []error{err},
+		})
+	}
+
+	sGallery := gallery.NewService(ctx)
+	galleryData, err := sGallery.ByID(uint(id))
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+		ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
+
+		return tpl.Render(ctx, "error/404", tpl.Data{
+			Errors: []error{err},
+		})
+	}
+
+	userData := user.CtxUser(ctx)
+	if galleryData.UserID != userData.ID {
+		ctx.ResponseWriter.WriteHeader(http.StatusMethodNotAllowed)
+
+		return tpl.Render(ctx, "error/405", tpl.Data{
+			Errors: []error{errors.Public(err, errNotAllowed.Error())},
+		})
+	}
+
+	err = ctx.Request.ParseMultipartForm(5 << 20) // 5 * 1024 * 1024 -> 5mb
+	if err != nil {
+		ctx.Logger.Info(err.Error())
+		ctx.ResponseWriter.WriteHeader(http.StatusInternalServerError)
+
+		return tpl.Render(ctx, "error/500", tpl.Data{
+			Errors: []error{err},
+		})
+	}
+
+	fileHeaders := ctx.Request.MultipartForm.File["images"]
+	for _, fileHeader := range fileHeaders {
+		file, err := fileHeader.Open()
+		if err != nil {
+			ctx.Logger.Info(err.Error())
+			ctx.ResponseWriter.WriteHeader(http.StatusInternalServerError)
+
+			return tpl.Render(ctx, "error/500", tpl.Data{
+				Errors: []error{err},
+			})
+		}
+
+		// TODO доработать
+		io.Copy(ctx.ResponseWriter, file)
+
+		err = file.Close()
+		if err != nil {
+			ctx.Logger.Info(err.Error())
+		}
+
+		return nil
+	}
 
 	return nil
 }

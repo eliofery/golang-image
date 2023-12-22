@@ -8,6 +8,7 @@ import (
 	"github.com/eliofery/golang-image/pkg/router"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
+	//"io"
 )
 
 var (
@@ -164,3 +165,9 @@ func (s *Service) Delete(id uint) error {
 
 	return nil
 }
+
+//func (s *Service) CreateImage(gelleryID uint, filename string, contents io.Reader) error {
+//	op := "model.gallery.CreateImage"
+//
+//	return nil
+//}

@@ -87,6 +87,8 @@ func main() {
 			r.Get("/{id}/images/{filename}", gallery.Image)
 			r.Post("/{id}/images/{filename}/delete", gallery.DeleteImage)
 
+			r.Post("/{id}/images", gallery.UploadImage)
+
 			r.Get("/new", gallery.New)
 			r.Post("/new", gallery.Create)
 
