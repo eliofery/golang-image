@@ -29,14 +29,17 @@ func Create(ctx router.Ctx) error {
 		})
 	}
 
-	editPath := fmt.Sprintf("/gallery/%d/edit", galleryData.ID)
+	cookie.SetMessage(ctx.ResponseWriter, "Галерея создана")
 
+	editPath := fmt.Sprintf("/gallery/%d/edit", galleryData.ID)
 	http.Redirect(ctx.ResponseWriter, ctx.Request, editPath, http.StatusFound)
 
 	return nil
 }
 
 func Update(ctx router.Ctx) error {
+	service := gallery.NewService(ctx)
+
 	id, err := strconv.Atoi(chi.URLParam(ctx.Request, "id"))
 	if err != nil {
 		ctx.Logger.Info(err.Error())
@@ -44,8 +47,6 @@ func Update(ctx router.Ctx) error {
 
 		return tpl.Render(ctx, "error/404", tpl.Data{})
 	}
-
-	service := gallery.NewService(ctx)
 
 	galleryData, err := service.ByID(uint(id))
 	if err != nil {
@@ -55,8 +56,7 @@ func Update(ctx router.Ctx) error {
 		return tpl.Render(ctx, "error/404", tpl.Data{})
 	}
 
-	userData := user.CtxUser(ctx)
-	if galleryData.UserID != userData.ID {
+	if galleryData.UserID != user.CtxUser(ctx).ID {
 		ctx.ResponseWriter.WriteHeader(http.StatusMethodNotAllowed)
 
 		return tpl.Render(ctx, "error/405", tpl.Data{
@@ -85,6 +85,8 @@ func Update(ctx router.Ctx) error {
 }
 
 func Delete(ctx router.Ctx) error {
+	service := gallery.NewService(ctx)
+
 	id, err := strconv.Atoi(chi.URLParam(ctx.Request, "id"))
 	if err != nil {
 		ctx.Logger.Info(err.Error())
@@ -93,8 +95,6 @@ func Delete(ctx router.Ctx) error {
 		return tpl.Render(ctx, "error/404", tpl.Data{})
 	}
 
-	service := gallery.NewService(ctx)
-
 	galleryData, err := service.ByID(uint(id))
 	if err != nil {
 		ctx.ResponseWriter.WriteHeader(http.StatusNotFound)
@@ -102,8 +102,7 @@ func Delete(ctx router.Ctx) error {
 		return tpl.Render(ctx, "error/404", tpl.Data{})
 	}
 
-	userData := user.CtxUser(ctx)
-	if galleryData.UserID != userData.ID {
+	if galleryData.UserID != user.CtxUser(ctx).ID {
 		ctx.ResponseWriter.WriteHeader(http.StatusMethodNotAllowed)
 
 		return tpl.Render(ctx, "error/405", tpl.Data{
@@ -127,6 +126,9 @@ func Delete(ctx router.Ctx) error {
 }
 
 func DeleteImage(ctx router.Ctx) error {
+	sGallery := gallery.NewService(ctx)
+	sImage := image.NewService(ctx)
+
 	filename := filepath.Base(chi.URLParam(ctx.Request, "filename"))
 	id, err := strconv.Atoi(chi.URLParam(ctx.Request, "id"))
 	if err != nil {
@@ -135,9 +137,6 @@ func DeleteImage(ctx router.Ctx) error {
 
 		return tpl.Render(ctx, "error/404", tpl.Data{})
 	}
-
-	sGallery := gallery.NewService(ctx)
-	sImage := image.NewService(ctx)
 
 	galleryData, err := sGallery.ByID(uint(id))
 	if err != nil {
@@ -166,13 +165,14 @@ func DeleteImage(ctx router.Ctx) error {
 	cookie.SetMessage(ctx.ResponseWriter, "Изображение успешно удалено")
 
 	editPath := fmt.Sprintf("/gallery/%d/edit", galleryData.ID)
-
 	http.Redirect(ctx.ResponseWriter, ctx.Request, editPath, http.StatusFound)
 
 	return nil
 }
 
 func UploadImage(ctx router.Ctx) error {
+	sGallery := gallery.NewService(ctx)
+
 	id, err := strconv.Atoi(chi.URLParam(ctx.Request, "id"))
 	if err != nil {
 		ctx.Logger.Info(err.Error())
@@ -183,7 +183,6 @@ func UploadImage(ctx router.Ctx) error {
 		})
 	}
 
-	sGallery := gallery.NewService(ctx)
 	galleryData, err := sGallery.ByID(uint(id))
 	if err != nil {
 		ctx.Logger.Info(err.Error())
@@ -194,8 +193,7 @@ func UploadImage(ctx router.Ctx) error {
 		})
 	}
 
-	userData := user.CtxUser(ctx)
-	if galleryData.UserID != userData.ID {
+	if galleryData.UserID != user.CtxUser(ctx).ID {
 		ctx.ResponseWriter.WriteHeader(http.StatusMethodNotAllowed)
 
 		return tpl.Render(ctx, "error/405", tpl.Data{

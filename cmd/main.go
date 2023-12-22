@@ -59,6 +59,7 @@ func main() {
 	route.Use(middleware.Logger)
 	route.Use(middleware.Recoverer)
 	//route.Use(middleware.URLFormat)
+	route.Use(mw.RemoveMessage)
 	route.Use(mw.Csrf)
 	route.Use(mw.Inject(logger, db, validate))
 	route.Use(mw.SetUser)

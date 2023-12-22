@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/eliofery/golang-image/pkg/router"
 	"net/http"
 )
 
@@ -51,18 +52,19 @@ func SetMessage(w http.ResponseWriter, message string) {
 	Set(w, Message, base64.StdEncoding.EncodeToString([]byte(message)))
 }
 
-func GetMessage(r *http.Request) (string, error) {
+func GetMessage(ctx router.Ctx) string {
 	op := "cookie.GetMessage"
 
-	messageEncode, err := Get(r, Message)
+	messageEncode, err := Get(ctx.Request, Message)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
+		ctx.Logger.Info(fmt.Sprintf("%s: %s", op, err))
 	}
 
 	message, err := base64.StdEncoding.DecodeString(messageEncode)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
+		ctx.Logger.Info(fmt.Sprintf("%s: %s", op, err))
+		return ""
 	}
 
-	return string(message), nil
+	return string(message)
 }

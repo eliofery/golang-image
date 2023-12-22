@@ -2,7 +2,6 @@ package tpl
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"github.com/eliofery/golang-image/internal/resources"
 	"github.com/eliofery/golang-image/pkg/router"
@@ -40,15 +39,12 @@ func (t *Tpl) SetLayout(layout string) *Tpl {
 	}
 }
 
-func (t *Tpl) Render(ctx context.Context, data Data) error {
+func (t *Tpl) Render(ctx router.Ctx, data Data) error {
 	op := "tpl.Render"
-
-	w := router.ResponseWriter(ctx)
-	r := router.Request(ctx)
 
 	layoutFileName := path.Base(t.getAllFiles()[0])
 	tpl := template.New(layoutFileName)
-	tpl = tpl.Funcs(getFuncMap(r, data))
+	tpl = tpl.Funcs(getFuncMap(ctx.Request, data))
 
 	tpl, err := tpl.ParseFS(resources.Views, t.getAllFiles()...)
 	if err != nil {
@@ -60,13 +56,13 @@ func (t *Tpl) Render(ctx context.Context, data Data) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	if _, err = io.Copy(w, &buf); err != nil {
+	if _, err = io.Copy(ctx.ResponseWriter, &buf); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil
 }
 
-func Render(ctx context.Context, page string, data Data) error {
+func Render(ctx router.Ctx, page string, data Data) error {
 	return New(page).Render(ctx, data)
 }
