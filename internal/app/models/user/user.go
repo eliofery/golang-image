@@ -104,7 +104,8 @@ func (s *Service) SignUp(mail, password string) (*User, error) {
         `,
 	})
 	if err != nil {
-		return user, fmt.Errorf("%s: %w", op, err)
+		s.ctx.Logger.Warn("Ошибка отправки почты")
+		//return user, fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = s.session.Create(&session.Session{UserID: user.ID})
