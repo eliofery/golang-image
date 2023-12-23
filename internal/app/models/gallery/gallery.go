@@ -3,11 +3,13 @@ package gallery
 import (
 	"database/sql"
 	"fmt"
+	"github.com/eliofery/golang-image/internal/app/models/image"
 	"github.com/eliofery/golang-image/internal/app/models/user"
 	"github.com/eliofery/golang-image/pkg/errors"
 	"github.com/eliofery/golang-image/pkg/router"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
+	"os"
 )
 
 var (
@@ -158,6 +160,11 @@ func (s *Service) Delete(id uint) error {
 	op := "model.gallery.Delete"
 
 	_, err := s.ctx.DB.Exec(`DELETE FROM galleries WHERE id = $1;`, id)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	err = os.RemoveAll(image.GalleriesDir(id))
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

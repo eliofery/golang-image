@@ -37,7 +37,7 @@ func NewService(ctx router.Ctx) *Service {
 func (s *Service) Images(galleryID uint) ([]Image, error) {
 	op := "model.image.Images"
 
-	globPattern := filepath.Join(galleriesDir(galleryID), "*")
+	globPattern := filepath.Join(GalleriesDir(galleryID), "*")
 	allFiles, err := filepath.Glob(globPattern)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -60,7 +60,7 @@ func (s *Service) Images(galleryID uint) ([]Image, error) {
 func (s *Service) Image(galleryID uint, filename string) (Image, error) {
 	op := "model.image.Image"
 
-	imagePath := filepath.Join(galleriesDir(galleryID), filename)
+	imagePath := filepath.Join(GalleriesDir(galleryID), filename)
 	_, err := os.Stat(imagePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -106,7 +106,7 @@ func (s *Service) CreateImage(galleryID uint, filename string, contents io.ReadS
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	galleryDir := galleriesDir(galleryID)
+	galleryDir := GalleriesDir(galleryID)
 	err = os.MkdirAll(galleryDir, 0755)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -127,7 +127,7 @@ func (s *Service) CreateImage(galleryID uint, filename string, contents io.ReadS
 	return nil
 }
 
-func galleriesDir(id uint) string {
+func GalleriesDir(id uint) string {
 	dir := os.Getenv("STATIC_DIR")
 	if dir == "" {
 		dir = "internal/static"
