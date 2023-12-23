@@ -14,7 +14,8 @@ import (
 var (
 	ErrNotFound = errors.New("изображение не найдено")
 
-	extensions = []string{".jpg", ".jpeg", ".png"}
+	extensions   = []string{".jpg", ".jpeg", ".png"}
+	contentTypes = []string{"image/jpeg", "image/jpg", "image/png"}
 )
 
 type Image struct {
@@ -92,11 +93,21 @@ func (s *Service) Delete(galleryID uint, filename string) error {
 	return nil
 }
 
-func (s *Service) CreateImage(galleryID uint, filename string, contents io.Reader) error {
+func (s *Service) CreateImage(galleryID uint, filename string, contents io.ReadSeeker) error {
 	op := "model.gallery.CreateImage"
 
+	err := errors.CheckContentType(contents, contentTypes)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	err = errors.CheckExtension(filename, extensions)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
 	galleryDir := galleriesDir(galleryID)
-	err := os.MkdirAll(galleryDir, 0755)
+	err = os.MkdirAll(galleryDir, 0755)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

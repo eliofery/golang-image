@@ -228,11 +228,23 @@ func UploadImage(ctx router.Ctx) error {
 
 		err = sImage.CreateImage(galleryData.ID, fileHeader.Filename, file)
 		if err != nil {
-			ctx.Logger.Info(err.Error())
+			var (
+				fileErr    errors.FileError
+				errMessage error
+			)
+
+			if errors.As(err, &fileErr) {
+				errMessage = errors.Public(err, fmt.Sprintf("%v не верный тип файла. Допустимые типы jpg, jpeg, png", fileHeader.Filename))
+			} else {
+				errMessage = err
+			}
+
+			ctx.Logger.Info(errMessage.Error())
+
 			ctx.ResponseWriter.WriteHeader(http.StatusInternalServerError)
 
-			return tpl.Render(ctx, "error/500", tpl.Data{
-				Errors: []error{err},
+			return tpl.Render(ctx, "error/405", tpl.Data{
+				Errors: []error{errMessage},
 			})
 		}
 	}

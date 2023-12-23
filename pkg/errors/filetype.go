@@ -16,7 +16,7 @@ func (ft FileError) Error() string {
 	return fmt.Sprintf("не верный тип файла: %s", ft.Issue)
 }
 
-func checkContentType(r io.ReadSeeker, allowedTypes []string) error {
+func CheckContentType(r io.ReadSeeker, allowedTypes []string) error {
 	op := "filetype.checkContentType"
 
 	testBytes := make([]byte, 512)
@@ -42,7 +42,7 @@ func checkContentType(r io.ReadSeeker, allowedTypes []string) error {
 	}
 }
 
-func checkExtension(filename string, allowedExtensions []string) error {
+func CheckExtension(filename string, allowedExtensions []string) error {
 	if static.HasExtension(filename, allowedExtensions) {
 		return nil
 	}
