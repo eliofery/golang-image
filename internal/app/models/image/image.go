@@ -5,6 +5,7 @@ import (
 	"github.com/eliofery/golang-image/pkg/errors"
 	"github.com/eliofery/golang-image/pkg/router"
 	"github.com/eliofery/golang-image/pkg/static"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -84,6 +85,30 @@ func (s *Service) Delete(galleryID uint, filename string) error {
 	}
 
 	err = os.Remove(image.FilePath)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s *Service) CreateImage(galleryID uint, filename string, contents io.Reader) error {
+	op := "model.gallery.CreateImage"
+
+	galleryDir := galleriesDir(galleryID)
+	err := os.MkdirAll(galleryDir, 0755)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	imagePath := filepath.Join(galleryDir, filename)
+	file, err := os.Create(imagePath)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, contents)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

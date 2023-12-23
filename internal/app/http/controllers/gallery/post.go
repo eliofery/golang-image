@@ -10,7 +10,6 @@ import (
 	"github.com/eliofery/golang-image/pkg/router"
 	"github.com/eliofery/golang-image/pkg/tpl"
 	"github.com/go-chi/chi/v5"
-	"io"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -172,6 +171,7 @@ func DeleteImage(ctx router.Ctx) error {
 
 func UploadImage(ctx router.Ctx) error {
 	sGallery := gallery.NewService(ctx)
+	sImage := image.NewService(ctx)
 
 	id, err := strconv.Atoi(chi.URLParam(ctx.Request, "id"))
 	if err != nil {
@@ -223,16 +223,24 @@ func UploadImage(ctx router.Ctx) error {
 			})
 		}
 
-		// TODO доработать
-		io.Copy(ctx.ResponseWriter, file)
+		// TODO разобраться с корректным закрытием файла
+		defer file.Close()
 
-		err = file.Close()
+		err = sImage.CreateImage(galleryData.ID, fileHeader.Filename, file)
 		if err != nil {
 			ctx.Logger.Info(err.Error())
-		}
+			ctx.ResponseWriter.WriteHeader(http.StatusInternalServerError)
 
-		return nil
+			return tpl.Render(ctx, "error/500", tpl.Data{
+				Errors: []error{err},
+			})
+		}
 	}
+
+	cookie.SetMessage(ctx.ResponseWriter, "Изображения успешно загружены")
+
+	editPath := fmt.Sprintf("/gallery/%d/edit", galleryData.ID)
+	http.Redirect(ctx.ResponseWriter, ctx.Request, editPath, http.StatusFound)
 
 	return nil
 }
